@@ -37,3 +37,11 @@ Requer Android SDK (build-tools 36, android-34) e JDK. A keystore de debug é ge
 
 ## Companion (Flutter)
 Ver `companion/README.md`. Pareia pelo QR da TV, guarda o token no Keychain/Keystore e reencontra o app se a porta mudar. Build: `cd companion && make check && make apk`.
+
+## Distribuição local (APK/IPA pela rede)
+```
+tools/dist.py --build            # compila o companion (APK arm64) e serve
+tools/dist.py --build --tv       # idem, e também os apps da TV
+tools/dist.py --ipa app.ipa      # inclui um IPA gerado no Mac
+```
+Sobe um servidor local, lista os endereços de cada interface de rede e mostra um QR code para abrir no celular (precisa de `qrencode` para o QR no terminal). Todo acesso exige o token da sessão (`?k=`). No Android é um download direto. No iPhone a instalação é OTA (`itms-services`) por HTTPS: o script cria uma CA local em `~/.cache/couchkit-dist/` (fora do repositório), a página oferece o certificado para instalar e confiar, e o IPA precisa estar assinado com um perfil que inclua o UDID do aparelho (e Modo Desenvolvedor ativo no iOS 16+). O build do IPA em si exige macOS.

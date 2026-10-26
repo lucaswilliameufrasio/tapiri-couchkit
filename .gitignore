@@ -22,3 +22,4 @@ build/
 local.properties
 *.iml
 .flutter-plugins-dependencies
+dist/
