@@ -8,6 +8,7 @@ import 'package:couchkit_remote/features/add/add_page.dart';
 import 'package:couchkit_remote/features/cam/cam_page.dart';
 import 'package:couchkit_remote/features/cast/cast_page.dart';
 import 'package:couchkit_remote/features/clock/clock_page.dart';
+import 'package:couchkit_remote/features/firehome/firehome_page.dart';
 import 'package:couchkit_remote/features/home/home_page.dart';
 import 'package:couchkit_remote/features/hub/hub_page.dart';
 import 'package:couchkit_remote/features/phonebro/phonebro_page.dart';
@@ -23,6 +24,12 @@ class AppRoutes implements RouteModule {
   void register(RouterService router) {
     router.register(HomePage.route, (context, args) => const HomePage());
     router.register(AddPage.route, (context, args) => const AddPage());
+    router.register(
+      FireHomePage.route,
+      (context, args) => _endpointPage(args, (e) {
+        return FireHomePage(service: _services.firehome(e));
+      }),
+    );
     router.register(
       PhoneBroPage.route,
       (context, args) => _endpointPage(args, (e) {

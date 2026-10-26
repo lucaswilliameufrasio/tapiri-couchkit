@@ -1,5 +1,5 @@
 #!/bin/bash
-# uso: ./build.sh phonebro|firehome  -> gera out/<app>.apk
+# uso: ./build.sh <app>  -> gera out/<app>.apk (apps: phonebro firehome stickhub phonecast stickclock homecam)
 set -euo pipefail
 cd "$(dirname "$0")"
 APP=$1; BT=$HOME/Android/Sdk/build-tools/36.0.0; JAR=$HOME/Android/Sdk/platforms/android-34/android.jar
@@ -9,10 +9,10 @@ $BT/aapt2 compile --dir $APP/res -o "$OUT/res.zip"
 LINK=(link -o "$OUT/base.apk" -I $JAR --manifest $APP/AndroidManifest.xml --min-sdk-version 22 --target-sdk-version 34 "$OUT/res.zip")
 [ -d $APP/assets ] && LINK+=(-A $APP/assets)
 $BT/aapt2 "${LINK[@]}"
-CP=$JAR; [ $APP != firehome ] && CP=$CP:lib/zxing-core.jar
+CP=$JAR:lib/zxing-core.jar
 EXTRA=(); [ $APP = homecam ] && EXTRA=(lib/media3/*.jar) && CP=$CP:$(printf "%s:" lib/media3/*.jar)
 javac --release 8 -Xlint:-options -cp $CP -d "$OUT/cls" $(find $APP/src -name '*.java')
-LIBS=(); [ $APP != firehome ] && LIBS=(lib/zxing-core.jar "${EXTRA[@]}")
+LIBS=(lib/zxing-core.jar "${EXTRA[@]}")
 $BT/d8 --min-api 22 --lib $JAR --output "$OUT" $(find "$OUT/cls" -name '*.class') "${LIBS[@]}"
 cp "$OUT/base.apk" "$OUT/un.apk"; (cd "$OUT" && zip -q -j un.apk classes.dex)
 $BT/zipalign -f 4 "$OUT/un.apk" "$OUT/al.apk"

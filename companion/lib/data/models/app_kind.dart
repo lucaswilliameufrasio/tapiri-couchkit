@@ -2,6 +2,15 @@ import 'package:flutter/material.dart';
 
 /// Apps da TV que o companion sabe controlar.
 enum AppKind {
+  firehome(
+    label: 'FireHome',
+    description: 'Launcher personalizável',
+    pageTitle: 'FireHome',
+    icon: Icons.home_filled,
+    color: Color(0xFFEB5757),
+    portStart: 9000,
+    portEnd: 9040,
+  ),
   phonebro(
     label: 'PhoneBro',
     description: 'Navegador da TV',

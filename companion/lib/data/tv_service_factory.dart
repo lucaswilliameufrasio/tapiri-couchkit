@@ -3,12 +3,15 @@ import 'package:couchkit_remote/data/models/tv_endpoint.dart';
 import 'package:couchkit_remote/data/services/cam_service.dart';
 import 'package:couchkit_remote/data/services/cast_service.dart';
 import 'package:couchkit_remote/data/services/clock_service.dart';
+import 'package:couchkit_remote/data/services/firehome_service.dart';
 import 'package:couchkit_remote/data/services/hub_service.dart';
 import 'package:couchkit_remote/data/services/phonebro_service.dart';
 
 /// Cria o servico de cada app para um endpoint (token e porta ja incluidos).
 class TvServiceFactory {
   const TvServiceFactory();
+
+  FireHomeService firehome(TvEndpoint e) => FireHomeService(TvClient(e));
 
   PhoneBroService phonebro(TvEndpoint e) => PhoneBroService(TvClient(e));
 

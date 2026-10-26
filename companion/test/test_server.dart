@@ -8,6 +8,7 @@ class FakeTv {
   final HttpServer _server;
   final String token;
   final List<Uri> requests = [];
+  final List<String> bodies = [];
 
   int get port => _server.port;
 
@@ -24,6 +25,9 @@ class FakeTv {
     final tv = FakeTv._(server, token);
     server.listen((request) async {
       tv.requests.add(request.uri);
+      if (request.method == 'POST') {
+        tv.bodies.add(await utf8.decoder.bind(request).join());
+      }
       final response = request.response;
       if (request.uri.path == '/') {
         response.headers.contentType = ContentType.html;

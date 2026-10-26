@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>FireHome</title>
+<style>
+:root{color-scheme:light dark;--bg:#fbf8ff;--fg:#1c1b1f;--card:#ece6f4;--mut:#6b6574;--ac:#6750a4;--on:#fff;--line:#d6cfe0}
+@media(prefers-color-scheme:dark){:root{--bg:#141218;--fg:#e6e0e9;--card:#2b2930;--mut:#a39cad;--ac:#cfbcff;--on:#381e72;--line:#3d3a45}}
+*{box-sizing:border-box}
+body{margin:0;font:16px/1.4 system-ui,sans-serif;background:var(--bg);color:var(--fg);padding:16px max(16px,env(safe-area-inset-right)) 96px max(16px,env(safe-area-inset-left));max-width:720px;margin:auto}
+h1{font-size:24px;margin:8px 0 4px}p.sub{color:var(--mut);margin:0 0 16px}
+details{background:var(--card);border-radius:18px;margin:12px 0;padding:4px 16px}
+summary{padding:12px 0;font-weight:600;cursor:pointer}
+label.row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-top:1px solid var(--line)}
+label.row:first-of-type{border-top:0}
+input[type=text],input[type=search]{width:100%;padding:12px;border-radius:12px;border:1px solid var(--line);background:var(--bg);color:var(--fg);font:inherit}
+input[type=color]{width:56px;height:40px;border:0;background:none;padding:0}
+input[type=range]{width:55%}
+button{font:inherit;border:0;border-radius:20px;padding:10px 16px;background:var(--ac);color:var(--on);cursor:pointer}
+button.ghost{background:transparent;color:var(--ac);border:1px solid var(--line)}
+button.sm{padding:6px 10px;border-radius:14px;min-width:38px}
+.preview{background:#000;border-radius:18px;overflow:hidden;position:relative;aspect-ratio:16/9;margin:8px 0}
+.preview img{width:100%;height:100%;object-fit:contain;display:block}
+.preview .msg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#ccc;text-align:center;padding:16px}
+.chips{display:flex;gap:8px;flex-wrap:wrap;padding:8px 0}
+.chip{width:56px;height:36px;border-radius:12px;border:2px solid transparent}
+.list>div{display:flex;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--line)}
+.list>div:first-child{border-top:0}.list .t{flex:1;min-width:0}.list .t small{display:block;color:var(--mut);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.list img{width:40px;height:40px;border-radius:8px;object-fit:contain;background:#0002}
+.bar{position:fixed;left:0;right:0;bottom:0;background:var(--bg);border-top:1px solid var(--line);padding:10px 16px calc(10px + env(safe-area-inset-bottom));display:flex;gap:8px;justify-content:space-between;align-items:center}
+#st{color:var(--mut);font-size:14px}
+dialog{border:0;border-radius:20px;background:var(--bg);color:var(--fg);width:min(92vw,520px);max-height:80vh;padding:16px}
+dialog::backdrop{background:#0008}
+</style>
+</head>
+<body>
+<h1>FireHome</h1>
+<p class="sub">Personalize o launcher da TV. As mudanças aparecem na hora.</p>
+
+<div class="preview"><img id="prev" alt="Prévia da tela da TV"><div class="msg" id="pmsg">Carregando prévia…</div></div>
+<button class="ghost" id="refresh">Atualizar prévia</button>
+
+<details open><summary>Aparência</summary>
+  <div class="chips" id="presets"></div>
+  <label class="row">Fundo (início)<input type="color" id="bg0"></label>
+  <label class="row">Fundo (meio)<input type="color" id="bg1"></label>
+  <label class="row">Fundo (fim)<input type="color" id="bg2"></label>
+  <label class="row">Cor de destaque<input type="color" id="accent"></label>
+  <label class="row">Cantos <input type="range" id="radius" min="0" max="40"></label>
+  <label class="row">Tamanho dos cartões <input type="range" id="scale" min="60" max="150"></label>
+  <label class="row">Tamanho do texto <input type="range" id="labelSize" min="10" max="24"></label>
+</details>
+
+<details><summary>Papel de parede</summary>
+  <label class="row">Usar papel de parede <input type="checkbox" id="wpOn"></label>
+  <label class="row">Escurecer <input type="range" id="wpDim" min="0" max="90"></label>
+  <label class="row">Imagem <input type="file" id="wpFile" accept="image/*"></label>
+  <div style="padding:8px 0"><button class="ghost" id="wpClear">Remover imagem</button></div>
+</details>
+
+<details><summary>Cabeçalho</summary>
+  <label class="row">Relógio <input type="checkbox" id="hClock"></label>
+  <label class="row">Formato 24 horas <input type="checkbox" id="hH24"></label>
+  <label class="row">Data <input type="checkbox" id="hDate"></label>
+  <label class="row">RAM livre <input type="checkbox" id="hRam"></label>
+  <label class="row">Dica no rodapé <input type="checkbox" id="hint"></label>
+  <label class="row" style="display:block">Saudação<input type="text" id="greeting" placeholder="ex.: Boa noite, Lucas"></label>
+  <label class="row" style="display:block">Cidade (clima)<input type="text" id="city" placeholder="ex.: Recife"></label>
+</details>
+
+<details open><summary>Linhas da tela inicial</summary>
+  <div class="list" id="rows"></div>
+  <div style="padding:8px 0"><button class="ghost" id="addRow">+ Nova linha</button></div>
+</details>
+
+<details><summary>Favoritos (ordem)</summary><div class="list" id="pins"></div></details>
+
+<details><summary>Apps</summary>
+  <input type="search" id="q" placeholder="Buscar app">
+  <div class="list" id="apps"></div>
+</details>
+
+<details><summary>Ferramentas (linha Sistema)</summary><div class="list" id="tools"></div></details>
+
+<details><summary>Avançado</summary>
+  <div style="padding:8px 0"><button class="ghost" id="reset">Restaurar padrões</button></div>
+</details>
+
+<dialog id="dlg"><h3 id="dlgT"></h3><div class="list" id="dlgL"></div><div style="padding-top:12px;text-align:right"><button id="dlgOk">Pronto</button></div></dialog>
+
+<div class="bar"><span id="st">Conectando…</span></div>
+
+<script>
+const K=new URLSearchParams(location.search).get('k')||'';
+const $=s=>document.querySelector(s);
+const PRESETS=[['Aurora','#0B1020','#1B1140','#3A1550','#5CC8FF'],['Oceano','#041a2b','#06406b','#0a7c8c','#7fe8ff'],['Floresta','#081c14','#0f3a2a','#1a5a45','#7FE8B0'],
+ ['Grafite','#0e0e10','#1a1a1f','#2a2a33','#ffffff'],['Pôr do sol','#2b0f1f','#6b1f3a','#c2573a','#ffd27f'],['Vinho','#1a0710','#3a0f24','#5c1a3a','#ff9fc8']];
+const TOOLS={settings:'Configurações',clean:'Limpar RAM',wifi:'Rede',customize:'Personalizar (QR)'};
+let cfg=null,apps=[],timer=null;
+
+function api(p,o){return fetch('/api/'+p+(p.includes('?')?'&':'?')+'k='+K,o)}
+function status(t){$('#st').textContent=t}
+function save(){clearTimeout(timer);status('Salvando…');timer=setTimeout(async()=>{
+  try{const r=await api('config',{method:'POST',body:JSON.stringify(cfg)});const j=await r.json();status(j.ok?'Salvo':'Erro: '+j.msg);setTimeout(prev,700)}
+  catch(e){status('Sem conexão com a TV')}},450)}
+function prev(){const i=$('#prev');i.onload=()=>$('#pmsg').style.display='none';i.onerror=()=>{$('#pmsg').style.display='flex';$('#pmsg').textContent='Abra o FireHome na TV para ver a prévia'};i.src='/api/preview?k='+K+'&t='+Date.now()}
+
+function bind(id,get,set,ev){const e=$(id);set(e);e['on'+(ev||'input')]=()=>{get(e);save()}}
+function bindAll(){
+  const t=cfg.theme,w=cfg.wallpaper,h=cfg.header;
+  [0,1,2].forEach(i=>bind('#bg'+i,e=>t.bg[i]=e.value,e=>e.value=t.bg[i]||'#000000'));
+  bind('#accent',e=>t.accent=e.value,e=>e.value=t.accent);
+  bind('#radius',e=>t.radius=+e.value,e=>e.value=t.radius);
+  bind('#scale',e=>t.scale=+e.value,e=>e.value=t.scale);
+  bind('#labelSize',e=>t.labelSize=+e.value,e=>e.value=t.labelSize);
+  bind('#wpOn',e=>w.on=e.checked,e=>e.checked=w.on,'change');
+  bind('#wpDim',e=>w.dim=+e.value,e=>e.value=w.dim);
+  bind('#hClock',e=>h.clock=e.checked,e=>e.checked=h.clock,'change');
+  bind('#hH24',e=>h.h24=e.checked,e=>e.checked=h.h24,'change');
+  bind('#hDate',e=>h.date=e.checked,e=>e.checked=h.date,'change');
+  bind('#hRam',e=>h.ram=e.checked,e=>e.checked=h.ram,'change');
+  bind('#hint',e=>cfg.hint=e.checked,e=>e.checked=cfg.hint,'change');
+  bind('#greeting',e=>h.greeting=e.value,e=>e.value=h.greeting);
+  bind('#city',e=>h.city=e.value,e=>e.value=h.city);
+}
+
+function renderPresets(){const box=$('#presets');box.innerHTML='';PRESETS.forEach(p=>{const b=document.createElement('button');b.className='chip';b.title=p[0];
+  b.style.background=`linear-gradient(135deg,${p[1]},${p[2]},${p[3]})`;b.onclick=()=>{cfg.theme.bg=[p[1],p[2],p[3]];cfg.theme.accent=p[4];bindAll();save()};box.appendChild(b)})}
+
+function mv(arr,i,d){const j=i+d;if(j<0||j>=arr.length)return;[arr[i],arr[j]]=[arr[j],arr[i]]}
+function row(label,sub,btns){const d=document.createElement('div');const t=document.createElement('div');t.className='t';t.innerHTML=`<b></b><small></small>`;t.firstChild.textContent=label;t.lastChild.textContent=sub||'';d.appendChild(t);btns.forEach(b=>d.appendChild(b));return d}
+function btn(txt,fn,cls){const b=document.createElement('button');b.textContent=txt;b.className='sm '+(cls||'ghost');b.onclick=fn;return b}
+const name=pkg=>(cfg.names[pkg])||(apps.find(a=>a.pkg===pkg)||{}).label||pkg;
+
+function renderRows(){const box=$('#rows');box.innerHTML='';const TYPES={pins:'Favoritos',all:'Todos os apps',tools:'Ferramentas',custom:'Personalizada'};
+  cfg.rows.forEach((r,i)=>{const inp=document.createElement('input');inp.type='text';inp.value=r.title;inp.oninput=()=>{r.title=inp.value;save()};
+    const d=document.createElement('div');d.style.flexWrap='wrap';const t=document.createElement('div');t.className='t';t.style.flexBasis='100%';t.appendChild(inp);
+    const cap=document.createElement('small');cap.textContent=TYPES[r.type]||r.type;t.appendChild(cap);d.appendChild(t);
+    d.appendChild(btn(r.show?'Visível':'Oculta',()=>{r.show=!r.show;renderRows();save()},r.show?'':'ghost'));
+    d.appendChild(btn(r.big?'Grande':'Normal',()=>{r.big=!r.big;renderRows();save()}));
+    if(r.type==='custom')d.appendChild(btn('Apps…',()=>pick(r)));
+    d.appendChild(btn('↑',()=>{mv(cfg.rows,i,-1);renderRows();save()}));d.appendChild(btn('↓',()=>{mv(cfg.rows,i,1);renderRows();save()}));
+    if(r.type==='custom')d.appendChild(btn('✕',()=>{cfg.rows.splice(i,1);renderRows();save()}));
+    box.appendChild(d)})}
+
+function renderPins(){const box=$('#pins');box.innerHTML='';cfg.pins.forEach((p,i)=>box.appendChild(row(name(p),p,[btn('↑',()=>{mv(cfg.pins,i,-1);renderPins();save()}),btn('↓',()=>{mv(cfg.pins,i,1);renderPins();save()}),btn('✕',()=>{cfg.pins.splice(i,1);renderPins();renderApps();save()})])));
+  if(!cfg.pins.length)box.innerHTML='<div class="t"><small>Nenhum favorito. Use ★ na lista de apps.</small></div>'}
+
+function renderApps(){const box=$('#apps');box.innerHTML='';const q=$('#q').value.toLowerCase();
+  apps.filter(a=>!q||a.label.toLowerCase().includes(q)||a.pkg.includes(q)).forEach(a=>{
+    const d=document.createElement('div');const im=document.createElement('img');im.loading='lazy';im.src='/api/icon?pkg='+encodeURIComponent(a.pkg)+'&k='+K;d.appendChild(im);
+    const t=document.createElement('div');t.className='t';const inp=document.createElement('input');inp.type='text';inp.placeholder=a.label;inp.value=cfg.names[a.pkg]||'';
+    inp.oninput=()=>{if(inp.value.trim())cfg.names[a.pkg]=inp.value.trim();else delete cfg.names[a.pkg];save()};t.appendChild(inp);const s=document.createElement('small');s.textContent=a.pkg;t.appendChild(s);d.appendChild(t);
+    const pinned=cfg.pins.includes(a.pkg),hid=cfg.hidden.includes(a.pkg);
+    d.appendChild(btn(pinned?'★':'☆',()=>{if(pinned)cfg.pins=cfg.pins.filter(x=>x!==a.pkg);else cfg.pins.push(a.pkg);renderPins();renderApps();save()},pinned?'':'ghost'));
+    d.appendChild(btn(hid?'Oculto':'Visível',()=>{if(hid)cfg.hidden=cfg.hidden.filter(x=>x!==a.pkg);else cfg.hidden.push(a.pkg);renderApps();save()},hid?'':'ghost'));
+    box.appendChild(d)})}
+
+function renderTools(){const box=$('#tools');box.innerHTML='';const all=Object.keys(TOOLS);const order=[...cfg.tools,...all.filter(x=>!cfg.tools.includes(x))];
+  order.forEach(id=>{const on=cfg.tools.includes(id);const i=cfg.tools.indexOf(id);
+    box.appendChild(row(TOOLS[id],'',[btn(on?'Ligada':'Desligada',()=>{if(on)cfg.tools=cfg.tools.filter(x=>x!==id);else cfg.tools.push(id);renderTools();save()},on?'':'ghost'),
+      ...(on?[btn('↑',()=>{mv(cfg.tools,i,-1);renderTools();save()}),btn('↓',()=>{mv(cfg.tools,i,1);renderTools();save()})]:[])]))})}
+
+function pick(r){$('#dlgT').textContent='Apps da linha “'+r.title+'”';const box=$('#dlgL');box.innerHTML='';
+  apps.forEach(a=>{const d=document.createElement('div');const c=document.createElement('input');c.type='checkbox';c.checked=(r.apps||[]).includes(a.pkg);
+    c.onchange=()=>{r.apps=r.apps||[];if(c.checked)r.apps.push(a.pkg);else r.apps=r.apps.filter(x=>x!==a.pkg);save()};
+    const t=document.createElement('div');t.className='t';t.textContent=name(a.pkg);d.append(c,t);box.appendChild(d)});$('#dlg').showModal()}
+$('#dlgOk').onclick=()=>$('#dlg').close();
+
+$('#addRow').onclick=()=>{cfg.rows.push({id:'r'+Date.now(),type:'custom',title:'Nova linha',show:true,big:false,apps:[]});renderRows();save()};
+$('#refresh').onclick=prev;$('#q').oninput=renderApps;
+$('#reset').onclick=async()=>{if(!confirm('Restaurar todas as configurações do launcher?'))return;await api('reset');await load()};
+$('#wpFile').onchange=async e=>{const f=e.target.files[0];if(!f)return;status('Enviando imagem…');
+  try{const r=await api('wallpaper',{method:'POST',body:f});const j=await r.json();status(j.msg);await load()}catch(x){status('Falha no envio')}};
+$('#wpClear').onclick=async()=>{await api('wallpaperclear');await load()};
+
+async function load(){
+  try{const [c,a]=await Promise.all([api('config').then(r=>r.json()),api('apps').then(r=>r.json())]);cfg=c;apps=a;
+    bindAll();renderPresets();renderRows();renderPins();renderApps();renderTools();status('Conectado');prev()}
+  catch(e){status('Sem conexão com a TV (token ou rede)')}}
+load();
+</script>
+</body>
+</html>

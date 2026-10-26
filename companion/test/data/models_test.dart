@@ -39,6 +39,7 @@ void main() {
       );
       expect(AppKind.fromHtml('<title>StickHub</title>'), AppKind.stickhub);
       expect(AppKind.fromHtml('<title>HomeCam</title>'), AppKind.homecam);
+      expect(AppKind.fromHtml('<title>FireHome</title>'), AppKind.firehome);
     });
 
     test('ignora páginas desconhecidas', () {
