@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#1c0c24"><title>PhoneCast</title>
+<style>
+:root{--bg:#160a1c;--card:#24122e;--line:#3d2349;--fg:#f6eefa;--mut:#b9a3c6;--ac:#ff7aa8;--ac2:#ffd54a;--ok:#7fe8b0}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;padding:max(16px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) max(24px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left));max-width:560px;margin:0 auto}
+h1{font-size:24px;margin:8px 0 2px}.sub{color:var(--mut);margin:0 0 16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:14px}
+h2{font-size:15px;margin:0 0 10px;color:var(--mut);font-weight:600;letter-spacing:.3px}
+label{display:block;font-size:14px;color:var(--mut);margin-bottom:6px}
+input[type=url]{width:100%;min-height:48px;border-radius:12px;border:1px solid var(--line);background:#160a1c;color:var(--fg);padding:0 14px;font-size:16px}
+button,.btn{min-height:48px;min-width:48px;border:0;border-radius:12px;background:var(--ac);color:#2a0a18;font-weight:700;font-size:16px;padding:0 18px;display:inline-flex;align-items:center;justify-content:center;gap:8px;cursor:pointer}
+label.btn{width:100%}button.sec{background:#38214a;color:var(--fg)}button:active{transform:scale(.97)}
+button:focus-visible,input:focus-visible,.btn:focus-visible{outline:3px solid var(--ac2);outline-offset:2px}
+.row{display:flex;gap:10px;margin-top:10px}.row>*{flex:1}
+input[type=file]{display:none}
+.bar{height:8px;background:#160a1c;border-radius:6px;overflow:hidden;margin-top:12px;display:none}.bar i{display:block;height:100%;width:0;background:var(--ok)}
+#msg{min-height:22px;margin-top:8px;font-size:14px;color:var(--ok)}#msg.err{color:#ff8a8a}
+.np{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+input[type=range]{width:100%;height:32px;accent-color:var(--ac)}
+.t{display:flex;justify-content:space-between;color:var(--mut);font-size:13px}
+svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style></head><body>
+<h1>PhoneCast</h1><p class="sub">Mande conteúdo do celular para a TV.</p>
+
+<div class="card"><h2>ENVIAR LINK</h2>
+<label for="u">Endereço (vídeo, música, YouTube ou site)</label>
+<input id="u" type="url" inputmode="url" placeholder="https://...">
+<div class="row"><button id="go"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>Abrir na TV</button></div></div>
+
+<div class="card"><h2>ENVIAR ARQUIVO</h2>
+<label class="btn" for="f" tabindex="0" id="pick"><svg viewBox="0 0 24 24"><path d="M12 16V4M6 10l6-6 6 6M4 20h16"/></svg>Escolher foto, vídeo ou música</label>
+<input id="f" type="file" accept="image/*,video/*,audio/*">
+<div class="bar" id="bar"><i id="fill"></i></div><div id="msg" role="status"></div></div>
+
+<div class="card"><h2>AGORA NA TV</h2>
+<div class="np" id="np">Nada tocando</div>
+<input type="range" id="seek" min="0" max="0" value="0" aria-label="Posição" disabled>
+<div class="t"><span id="tp">0:00</span><span id="td">0:00</span></div>
+<div class="row">
+<button class="sec" data-c="seek" data-v="-10" aria-label="Voltar 10 segundos"><svg viewBox="0 0 24 24"><path d="M11 6 5 12l6 6M19 6l-6 6 6 6"/></svg>10s</button>
+<button id="pp" aria-label="Pausar ou tocar"><svg viewBox="0 0 24 24"><path d="M8 5v14M16 5v14"/></svg></button>
+<button class="sec" data-c="seek" data-v="10" aria-label="Avançar 10 segundos">10s<svg viewBox="0 0 24 24"><path d="m13 6 6 6-6 6M5 6l6 6-6 6"/></svg></button></div>
+<div class="row">
+<button class="sec" id="vd" aria-label="Diminuir volume"><svg viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9H4zM17 9c1.5 1.5 1.5 4.500 0 6"/></svg>−</button>
+<button class="sec" id="mu" aria-label="Mudo"><svg viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9H4zM17 9l4 6M21 9l-4 6"/></svg></button>
+<button class="sec" id="vu" aria-label="Aumentar volume"><svg viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9H4zM17 9c1.5 1.5 1.5 4.500 0 6M20 6c3 3 3 9 0 12"/></svg>+</button></div>
+<div class="row"><button class="sec" data-c="stop"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg>Fechar na TV</button></div></div>
+
+<script>
+const K=new URLSearchParams(location.search).get('k')||sessionStorage.getItem('k')||'';try{sessionStorage.setItem('k',K)}catch(e){}
+const $=id=>document.getElementById(id),msg=(t,e)=>{$('msg').textContent=t;$('msg').className=e?'err':''};
+const api=(p,o)=>fetch('/api/'+p+(p.includes('?')?'&':'?')+'k='+K,o).then(r=>r.json());
+const fmt=s=>{s=Math.floor(s/1000);return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')};
+$('go').onclick=async()=>{const u=$('u').value.trim();if(!u)return;const r=await api('link?url='+encodeURIComponent(u));msg(r.msg,!r.ok)};
+$('f').onchange=e=>{const f=e.target.files[0];if(!f)return;const x=new XMLHttpRequest();
+ x.open('POST','/api/upload?k='+K+'&name='+encodeURIComponent(f.name)+'&type='+encodeURIComponent(f.type));
+ $('bar').style.display='block';msg('Enviando '+f.name+'…');
+ x.upload.onprogress=p=>{$('fill').style.width=(p.loaded/p.total*100)+'%'};
+ x.onload=()=>{try{const r=JSON.parse(x.responseText);msg(r.msg||r.error,!r.ok)}catch(_){msg('falha',1)}$('bar').style.display='none';$('f').value=''};
+ x.onerror=()=>{msg('falha no envio',1);$('bar').style.display='none'};x.send(f)};
+$('pick').onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();$('f').click()}};
+document.querySelectorAll('[data-c]').forEach(b=>b.onclick=()=>api('ctl?cmd='+b.dataset.c+'&v='+(b.dataset.v||0)).then(poll));
+$('pp').onclick=()=>api('ctl?cmd=toggle').then(poll);
+$('vu').onclick=()=>api('ctl?cmd=vol&v=up');$('vd').onclick=()=>api('ctl?cmd=vol&v=down');$('mu').onclick=()=>api('ctl?cmd=mute');
+let drag=false;$('seek').oninput=()=>{drag=true;$('tp').textContent=fmt($('seek').value)};
+$('seek').onchange=()=>{api('ctl?cmd=to&v='+Math.floor($('seek').value/1000)).then(()=>{drag=false})};
+async function poll(){try{const s=await api('state');$('np').textContent=s.active?s.title:'Nada tocando';
+ const live=s.active&&s.kind!=='image'&&s.dur>0;$('seek').disabled=!live;$('seek').max=s.dur||0;if(!drag){$('seek').value=s.pos;$('tp').textContent=fmt(s.pos)}$('td').textContent=fmt(s.dur||0);
+ $('pp').innerHTML='<svg viewBox="0 0 24 24"><path d="'+(s.playing?'M8 5v14M16 5v14':'M7 4l13 8-13 8z')+'"/></svg>'}catch(e){}}
+setInterval(poll,2000);poll();
+</script></body></html>

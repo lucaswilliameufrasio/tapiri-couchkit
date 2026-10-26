@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#081c1c">
+<title>StickHub</title>
+<style>
+:root{color-scheme:dark;--bg:#081c1c;--surface:#10302f;--surface2:#174544;--line:#25625b;--acc:#7fe8b0;--on-acc:#03140d;--tx:#e9fbf3;--mut:#9fc9bb;--warn:#ffd54a;--bad:#ff8a80;--r:14px}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{background:var(--bg)}
+body{margin:0 auto;max-width:640px;color:var(--tx);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  padding:max(14px,env(safe-area-inset-top)) max(14px,env(safe-area-inset-right)) max(24px,env(safe-area-inset-bottom)) max(14px,env(safe-area-inset-left))}
+svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+header{display:flex;align-items:center;gap:10px;min-height:44px;margin-bottom:8px}
+h1{font-size:20px;margin:0;flex:1}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--warn)}.dot.ok{background:#4ade80}
+nav{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;background:var(--surface);padding:6px;border-radius:16px;margin-bottom:14px;position:sticky;top:0;z-index:5}
+nav button{min-height:44px;border:0;border-radius:11px;background:transparent;color:var(--mut);font:inherit;font-size:15px;cursor:pointer}
+nav button[aria-selected=true]{background:var(--acc);color:var(--on-acc);font-weight:600}
+button{font:inherit;color:var(--tx)}
+:is(button,input,a,select):focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+input[type=search]{width:100%;min-height:48px;background:var(--surface);color:var(--tx);border:1px solid var(--line);border-radius:var(--r);padding:0 14px;font:inherit;margin-bottom:10px}
+.row{display:flex;gap:8px;align-items:center;margin-bottom:10px}
+.chip{min-height:40px;padding:0 14px;border-radius:99px;border:1px solid var(--line);background:var(--surface);cursor:pointer;font-size:14px}
+.chip[aria-pressed=true]{background:var(--acc);color:var(--on-acc);border-color:var(--acc)}
+.app{display:flex;gap:12px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:10px 12px;margin-bottom:8px}
+.app img{width:44px;height:44px;border-radius:10px;background:var(--surface2);flex:none}
+.app .t{flex:1;min-width:0}.app b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.app small{display:block;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.acts{display:flex;gap:6px}
+@media (max-width:520px){.app{flex-wrap:wrap}.app .t{flex:1 1 calc(100% - 60px)}.acts{width:100%;justify-content:flex-end}}
+.ib{width:44px;height:44px;border-radius:12px;border:1px solid var(--line);background:var(--surface2);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .12s}
+.ib:active{transform:scale(.94);background:var(--acc);color:var(--on-acc)}
+.ib.danger{color:var(--bad)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:16px;margin-bottom:12px}
+.card h2{margin:0 0 10px;font-size:13px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--mut)}
+.bar{height:12px;border-radius:99px;background:var(--surface2);overflow:hidden;margin:6px 0 4px}.bar i{display:block;height:100%;background:var(--acc);border-radius:99px;transition:width .4s}
+.kv{display:flex;justify-content:space-between;gap:12px;padding:6px 0;border-bottom:1px solid #ffffff10}.kv:last-child{border:0}.kv span:first-child{color:var(--mut)}
+.btn{min-height:48px;padding:0 18px;border-radius:var(--r);border:1px solid var(--acc);background:var(--acc);color:var(--on-acc);font-weight:600;cursor:pointer;width:100%}
+.btn.sec{background:var(--surface2);color:var(--tx);border-color:var(--line)}
+.btn:disabled{opacity:.5}
+#drop{border:2px dashed var(--line);border-radius:18px;padding:28px 16px;text-align:center;color:var(--mut);margin-bottom:12px}
+#drop.over{border-color:var(--acc);color:var(--tx)}
+progress{width:100%;height:10px;accent-color:var(--acc)}
+.msg{min-height:24px;color:var(--mut);font-size:14px;margin:8px 2px}
+.toast{position:fixed;left:50%;bottom:max(20px,env(safe-area-inset-bottom));transform:translateX(-50%);background:#0b2b27;border:1px solid var(--acc);padding:10px 16px;border-radius:99px;font-size:14px;z-index:10;max-width:90vw}
+.empty{color:var(--mut);text-align:center;padding:24px}
+[hidden]{display:none!important}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style></head><body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4l12 8-12 8z"/></symbol>
+<symbol id="i-stop" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/></symbol>
+<symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></symbol>
+<symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.01"/></symbol>
+<symbol id="i-up" viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5M4 20h16"/></symbol>
+</defs></svg>
+
+<header><span class="dot" id="dot"></span><h1>StickHub</h1><span id="model" style="color:var(--mut);font-size:13px"></span></header>
+<nav role="tablist">
+  <button role="tab" aria-selected="true" data-t="apps">Apps</button>
+  <button role="tab" aria-selected="false" data-t="install">Instalar</button>
+  <button role="tab" aria-selected="false" data-t="sys">Sistema</button>
+</nav>
+
+<section id="apps">
+  <input type="search" id="q" placeholder="Buscar app" aria-label="Buscar app" autocapitalize="off" autocomplete="off">
+  <div class="row"><button class="chip" id="sysf" aria-pressed="false">Mostrar apps do sistema</button></div>
+  <div id="list"></div>
+</section>
+
+<section id="install" hidden>
+  <label id="drop" for="file"><svg style="width:34px;height:34px"><use href="#i-up"/></svg><br><b>Escolher APK do celular</b><br><small>Toque aqui ou arraste um arquivo .apk. Depois confirme a instalação na TV.</small></label>
+  <input type="file" id="file" accept=".apk,application/vnd.android.package-archive" hidden>
+  <progress id="prog" value="0" max="100" hidden></progress>
+  <div class="msg" id="imsg" role="status"></div>
+  <div class="card"><h2>Abrir link na TV</h2>
+    <div class="row"><input type="search" id="url" placeholder="https://…" inputmode="url" style="margin:0" aria-label="Endereço"><button class="btn" id="openurl" style="width:auto">Abrir</button></div>
+    <small style="color:var(--mut)">Abre no PhoneBro, se estiver instalado.</small></div>
+</section>
+
+<section id="sys" hidden>
+  <div class="card"><h2>Memória</h2><div class="kv"><span>RAM livre</span><b id="ramv">–</b></div><div class="bar"><i id="ramb" style="width:0"></i></div>
+    <button class="btn" id="clean" style="margin-top:10px">Limpar RAM</button></div>
+  <div class="card"><h2>Armazenamento</h2><div class="kv"><span>Livre</span><b id="diskv">–</b></div><div class="bar"><i id="diskb" style="width:0"></i></div></div>
+  <div class="card"><h2>Apps que mais usam RAM</h2><div id="top"><div class="empty">Carregando…</div></div></div>
+  <div class="card"><h2>Dispositivo</h2><div id="dev"></div></div>
+</section>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+const $=s=>document.querySelector(s);
+const K=new URLSearchParams(location.search).get('k')||sessionStorage.k||'';sessionStorage.k=K;
+const U=(p,q={})=>'/api/'+p+'?'+new URLSearchParams({...q,k:K});
+const api=(p,q)=>fetch(U(p,q),{method:'POST'}).then(r=>r.json());
+let tt;const toast=m=>{const t=$('#toast');t.textContent=m;t.hidden=false;clearTimeout(tt);tt=setTimeout(()=>t.hidden=true,2600)};
+const esc=s=>s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+// abas
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('nav button').forEach(x=>x.setAttribute('aria-selected',x===b));
+  ['apps','install','sys'].forEach(t=>$('#'+t).hidden=t!==b.dataset.t);
+  if(b.dataset.t==='sys')info();
+});
+
+// apps
+let apps=[],showSys=false;
+async function loadApps(){
+  try{apps=await fetch(U('apps')).then(r=>r.json());$('#dot').classList.add('ok')}catch(e){$('#dot').classList.remove('ok');$('#list').innerHTML='<div class="empty">Sem conexão com a TV</div>';return}
+  render();
+}
+function render(){
+  const f=$('#q').value.trim().toLowerCase();
+  const items=apps.filter(a=>(showSys||!a.sys)&&(!f||a.label.toLowerCase().includes(f)||a.pkg.includes(f))).sort((a,b)=>a.label.localeCompare(b.label));
+  $('#list').innerHTML=items.length?items.map(a=>`<div class="app" data-p="${esc(a.pkg)}">
+    <img loading="lazy" alt="" src="${U('icon',{pkg:a.pkg})}">
+    <div class="t"><b>${esc(a.label)}</b><small>${esc(a.pkg)}${a.ver?' · '+esc(a.ver):''}</small></div>
+    <div class="acts">
+      ${a.launch?`<button class="ib" data-a="launch" aria-label="Abrir ${esc(a.label)}"><svg style="fill:currentColor"><use href="#i-play"/></svg></button>`:''}
+      <button class="ib" data-a="stop" aria-label="Encerrar ${esc(a.label)}"><svg><use href="#i-stop"/></svg></button>
+      <button class="ib" data-a="details" aria-label="Detalhes de ${esc(a.label)}"><svg><use href="#i-info"/></svg></button>
+      ${a.sys?'':`<button class="ib danger" data-a="uninstall" aria-label="Desinstalar ${esc(a.label)}"><svg><use href="#i-trash"/></svg></button>`}
+    </div></div>`).join(''):'<div class="empty">Nenhum app encontrado</div>';
+}
+$('#q').oninput=render;
+$('#sysf').onclick=e=>{showSys=!showSys;e.currentTarget.setAttribute('aria-pressed',showSys);render()};
+$('#list').onclick=async e=>{
+  const b=e.target.closest('button[data-a]');if(!b)return;
+  const row=b.closest('.app'),a=b.dataset.a,p=row.dataset.p,name=row.querySelector('b').textContent;
+  if(a==='uninstall'&&!confirm('Desinstalar "'+name+'"?'))return;
+  try{const r=await api(a,{pkg:p});toast(r.ok?(a==='launch'?'Abrindo '+name:a==='stop'?name+' encerrado':r.msg||'Ok'):'Erro: '+r.msg)}catch(_){toast('Falha de conexão')}
+};
+
+// instalar
+async function sendApk(file){
+  if(!file)return;
+  $('#prog').hidden=false;$('#prog').value=0;$('#imsg').textContent='Enviando '+file.name+'…';
+  const x=new XMLHttpRequest();x.open('POST',U('install',{name:file.name}));
+  x.upload.onprogress=e=>{if(e.lengthComputable)$('#prog').value=e.loaded/e.total*100};
+  x.onload=()=>{$('#prog').hidden=true;let r={};try{r=JSON.parse(x.responseText)}catch(_){}
+    $('#imsg').textContent=r.ok?'Enviado. '+r.msg+'.':'Erro: '+(r.error||r.msg||x.status);if(r.ok)pollInstall()};
+  x.onerror=()=>{$('#prog').hidden=true;$('#imsg').textContent='Falha no envio'};
+  x.send(file);
+}
+async function pollInstall(){
+  for(let i=0;i<60;i++){await new Promise(r=>setTimeout(r,2000));
+    const s=(await fetch(U('installstatus')).then(r=>r.json())).status;
+    if(s==='instalado'){$('#imsg').textContent='Instalado com sucesso.';loadApps();return}
+    if(s.startsWith('falhou')){$('#imsg').textContent='Instalação '+s;return}}
+}
+$('#file').onchange=e=>{sendApk(e.target.files[0]);e.target.value=''};
+const drop=$('#drop');
+['dragenter','dragover'].forEach(n=>drop.addEventListener(n,e=>{e.preventDefault();drop.classList.add('over')}));
+['dragleave','drop'].forEach(n=>drop.addEventListener(n,e=>{e.preventDefault();drop.classList.remove('over')}));
+drop.addEventListener('drop',e=>sendApk(e.dataTransfer.files[0]));
+$('#openurl').onclick=async()=>{const u=$('#url').value.trim();if(!u)return;
+  const r=await api('openurl',{url:/^[a-z]+:\/\//i.test(u)?u:'https://'+u});toast(r.ok?'Enviado para a TV':'Erro')};
+
+// sistema
+const gb=m=>m>=1024?(m/1024).toFixed(1)+' GB':m+' MB';
+const up=s=>{const d=Math.floor(s/86400),h=Math.floor(s%86400/3600),m=Math.floor(s%3600/60);return(d?d+'d ':'')+h+'h '+m+'min'};
+async function info(){
+  try{const i=await fetch(U('info')).then(r=>r.json());
+    $('#model').textContent=i.model;
+    $('#ramv').textContent=gb(i.ramFree)+' de '+gb(i.ramTotal);$('#ramb').style.width=(100-i.ramFree/i.ramTotal*100)+'%';
+    $('#diskv').textContent=gb(i.diskFree)+' de '+gb(i.diskTotal);$('#diskb').style.width=(100-i.diskFree/i.diskTotal*100)+'%';
+    $('#top').innerHTML=i.top.length?i.top.map(t=>`<div class="kv"><span>${esc(t.label)}</span><b>${t.mb} MB</b></div>`).join(''):'<div class="empty">O Android não informa o uso de RAM de outros apps neste aparelho.</div>';
+    $('#dev').innerHTML=`<div class="kv"><span>Android</span><b>${i.android} (API ${i.sdk})</b></div><div class="kv"><span>Ligado há</span><b>${up(i.uptime)}</b></div>`}catch(_){}
+}
+$('#clean').onclick=async e=>{e.target.disabled=true;e.target.textContent='Limpando…';
+  try{const r=await api('clean');toast('RAM livre: '+r.before+' → '+r.after+' MB')}catch(_){toast('Falha')}
+  e.target.disabled=false;e.target.textContent='Limpar RAM';info()};
+loadApps();info();
+</script></body></html>

@@ -1,0 +1,32 @@
+# Fire TV Stick 4K (mantis, Fire OS 5 / Android 7.1) — `adb connect <ip>:5555`
+
+- `apply.sh [disable|enable]` — debloat reversível (`debloat-list.txt`) + animações 0.5x.
+- `apps/build.sh phonebro|firehome` — compila sem Gradle (aapt2+javac+d8+apksigner) → `apps/out/*.apk`.
+- **PhoneBro**: navegador WebView; servidor HTTP na porta 8765, QR code na tela inicial (MENU mostra o QR). Cursor com D-pad, touchpad/teclado/URL/favoritos pelo celular.
+- **FireHome**: launcher próprio; abre no boot (+12s). Home do controle continua indo para o launcher da Amazon (pacote protegido, sem root).
+- `rollback-launcher.sh` — reativa o launcher Amazon (caso necessário).
+- `tune-official-launcher.sh [apply|revert]` — desliga anúncios personalizados, telemetria de uso e protetor de tela da Amazon; compila (`-m speed`) o launcher e as configurações.
+- PhoneBro escolhe a porta sozinho (última usada → 8765..8805 → qualquer livre); a URL/QR mostra a porta real.
+- **StickHub** (`release/stickhub.apk`): painel web (Android e iPhone) com lista de apps (abrir/encerrar/detalhes/desinstalar), envio e instalação de APK pelo celular, abrir link no PhoneBro, RAM/armazenamento e limpar RAM. Porta automática a partir de 8800, QR na tela da TV. Primeira instalação de APK exige liberar "fontes desconhecidas" para o StickHub.
+- `release/` — APKs prontos (phonebro, firehome, stickhub). `emulator/` — AVDs `tv25` (Android 7.1) e `tv36` (Android 16).
+
+## PhoneCast (`release/phonecast.apk`)
+Envia do celular (Android ou iPhone) para a TV: links (vídeo/áudio direto tocam no player; YouTube e sites abrem no app correspondente), fotos, vídeos e músicas (upload, tocados na TV). Controles no celular: pausar, ±10 s, barra de posição, volume, mudo, fechar. No controle da TV: OK pausa, setas buscam, Voltar fecha. Porta automática a partir de 8850, QR code na tela inicial. Testado no emulador Android 7.1 (foto, vídeo, controles, link, parar).
+Limite: em Android 10+ o sistema pode bloquear abrir o player com o app em segundo plano.
+
+## StickClock (`release/stickclock.apk`)
+Tela ambiente na TV: relógio grande, clima atual + 3 dias (Open-Meteo, sem chave; cidade definida pelo celular) e lista de notas/compras com checkbox. OK no controle mostra o QR; a página no celular (Android/iPhone) adiciona, marca, remove itens e muda a cidade. Porta automática a partir de 8900. Testado no emulador Android 16.
+
+## HomeCam (`release/homecam.apk`)
+Câmeras do go2rtc na TV. O endereço do go2rtc é definido pelo celular (MENU no controle mostra o QR). Grade com snapshots (`/api/frame.jpeg`), tela cheia em HLS via ExoPlayer/media3 1.3.1 (`/api/stream.m3u8`, libs em `apps/lib/media3/`) com queda automática para "modo compatível" (snapshots a ~5 fps) se o vídeo não iniciar em 8 s ou der erro; OK alterna os modos, ◀ ▶ trocam de câmera, Voltar fecha. Lista de câmeras vem de `/api/streams`. Porta automática a partir de 8950.
+Teste sem câmeras reais: go2rtc com fontes `ffmpeg:virtual?video=testsrc2|smptebars|mandelbrot` (config usada: 3 streams h264 1280x720). No emulador Android 7.1 o HLS do go2rtc não tocava no VideoView nativo (fMP4); com ExoPlayer toca no stick real (decoder MTK AVC por hardware).
+
+## Próximos apps (adiado)
+Ver `PLANO.md`: HomeDeck (ar condicionado Midea + tomadas inteligentes) e app companion Android/iOS.
+
+## Como compilar
+```
+apps/fetch-libs.sh        # baixa zxing e media3 (uma vez)
+apps/build.sh homecam     # gera apps/out/homecam.apk (assina com apps/debug.keystore, criado na 1a vez)
+```
+Requer Android SDK (build-tools 36, android-34) e JDK. A keystore de debug é gerada localmente e **não** vai para o git: se perdê-la, os apps precisam ser reinstalados (assinatura diferente). Os scripts de otimização leem `STICK=ip:5555` do ambiente ou de um `.env` (copie `.env.example`).

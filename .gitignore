@@ -1,0 +1,22 @@
+# segredos e chaves de assinatura (nunca commitar)
+*.keystore
+*.jks
+*.pem
+*.key
+.env
+.env.*
+!.env.example
+secrets/
+*.local
+# build e artefatos
+apps/out/
+release/
+apps/lib/
+emulator/*.log
+# ferramentas
+.fvm/
+.dart_tool/
+build/
+.idea/
+.vscode/
+local.properties

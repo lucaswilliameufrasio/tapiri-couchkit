@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#132226"><title>HomeCam</title>
+<style>
+:root{--bg:#0d181b;--card:#15262a;--line:#294249;--fg:#eef6f7;--mut:#9fbcc2;--ac:#ffb27a;--ok:#7fe8b0}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;padding:max(16px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) max(24px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left));max-width:560px;margin:0 auto}
+h1{font-size:24px;margin:8px 0 2px}.sub{color:var(--mut);margin:0 0 16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:14px}
+h2{font-size:15px;margin:0 0 10px;color:var(--mut);font-weight:600;letter-spacing:.3px}
+label{display:block;font-size:14px;color:var(--mut);margin-bottom:6px}
+input{width:100%;min-height:48px;border-radius:12px;border:1px solid var(--line);background:#0d181b;color:var(--fg);padding:0 14px;font-size:16px}
+button{min-height:48px;border:0;border-radius:12px;background:var(--ac);color:#2a1204;font-weight:700;font-size:16px;padding:0 18px;cursor:pointer}
+button:active{transform:scale(.97)}button:focus-visible,input:focus-visible{outline:3px solid #fff;outline-offset:2px}
+.row{display:flex;gap:10px}.row>input{flex:1}#msg{min-height:22px;margin-top:8px;font-size:14px;color:var(--ok)}#msg.err{color:#ff8a8a}
+ul{margin:8px 0 0;padding-left:20px;color:var(--fg)}
+</style></head><body>
+<h1>HomeCam</h1><p class="sub">Câmeras do go2rtc na TV.</p>
+<div class="card"><h2>GO2RTC</h2><label for="u">Endereço do servidor</label>
+<div class="row"><input id="u" type="url" inputmode="url" placeholder="http://192.168.0.10:1984" autocomplete="off"><button id="s">Salvar</button></div>
+<div id="msg" role="status"></div></div>
+<div class="card"><h2>CÂMERAS ENCONTRADAS</h2><ul id="l"><li>—</li></ul></div>
+<script>
+const K=new URLSearchParams(location.search).get('k')||sessionStorage.getItem('k')||'';try{sessionStorage.setItem('k',K)}catch(e){}
+const $=id=>document.getElementById(id);
+const api=p=>fetch('/api/'+p+(p.includes('?')?'&':'?')+'k='+K).then(r=>r.json());
+function show(r,first){if(first&&r.url)$('u').value=r.url;$('msg').textContent=r.ok?r.cams.length+' câmeras encontradas':(r.error||'');$('msg').className=r.ok?'':'err';
+ $('l').innerHTML='';(r.cams.length?r.cams:['nenhuma']).forEach(c=>{const li=document.createElement('li');li.textContent=c;$('l').append(li)})}
+$('s').onclick=()=>{$('msg').textContent='Testando…';$('msg').className='';api('set?u='+encodeURIComponent($('u').value)).then(r=>show(r,false))};
+$('u').onkeydown=e=>{if(e.key==='Enter')$('s').click()};
+api('get').then(r=>show(r,true));
+</script></body></html>

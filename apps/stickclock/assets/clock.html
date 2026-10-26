@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b1730"><title>StickClock</title>
+<style>
+:root{--bg:#08112a;--card:#101e40;--line:#22366a;--fg:#eef3ff;--mut:#9fb3de;--ac:#5aa0ff;--ac2:#ffd54a;--ok:#7fe8b0}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;padding:max(16px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) max(24px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left));max-width:560px;margin:0 auto}
+h1{font-size:24px;margin:8px 0 2px}.sub{color:var(--mut);margin:0 0 16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:14px}
+h2{font-size:15px;margin:0 0 10px;color:var(--mut);font-weight:600;letter-spacing:.3px}
+label{display:block;font-size:14px;color:var(--mut);margin-bottom:6px}
+input{width:100%;min-height:48px;border-radius:12px;border:1px solid var(--line);background:#08112a;color:var(--fg);padding:0 14px;font-size:16px}
+button{min-height:48px;min-width:48px;border:0;border-radius:12px;background:var(--ac);color:#04122e;font-weight:700;font-size:16px;padding:0 18px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
+button.sec{background:#1d3166;color:var(--fg)}button:active{transform:scale(.97)}
+button:focus-visible,input:focus-visible{outline:3px solid var(--ac2);outline-offset:2px}
+.row{display:flex;gap:10px}.row>input{flex:1}
+ul{list-style:none;margin:12px 0 0;padding:0}
+li{display:flex;align-items:center;gap:6px;border-top:1px solid var(--line)}
+li .t{flex:1;min-height:48px;display:flex;align-items:center;gap:12px;background:none;color:var(--fg);justify-content:flex-start;font-weight:500;text-align:left;padding:0}
+li.done .t span{text-decoration:line-through;color:var(--mut)}
+.box{width:24px;height:24px;border:2px solid var(--ac);border-radius:7px;display:inline-flex;align-items:center;justify-content:center;flex:none}
+li.done .box{background:var(--ok);border-color:var(--ok)}li.done .box:after{content:"";width:6px;height:11px;border:solid #04122e;border-width:0 3px 3px 0;transform:rotate(45deg) translate(-1px,-1px)}
+li .x{background:none;color:var(--mut);font-size:22px;padding:0}
+.empty{color:var(--mut);margin-top:10px}#msg{min-height:22px;margin-top:8px;font-size:14px;color:var(--ok)}#msg.err{color:#ff8a8a}
+</style></head><body>
+<h1>StickClock</h1><p class="sub">Relógio, clima e lista na TV.</p>
+<div class="card"><h2>CIDADE (CLIMA)</h2><label for="c">Nome da cidade</label>
+<div class="row"><input id="c" placeholder="Ex.: Recife" autocomplete="off"><button id="cs">Salvar</button></div><div id="msg" role="status"></div></div>
+<div class="card"><h2>LISTA</h2><label for="n">Novo item</label>
+<div class="row"><input id="n" placeholder="Ex.: leite" autocomplete="off" enterkeyhint="done"><button id="ad">Adicionar</button></div>
+<ul id="l"></ul><div class="empty" id="em" hidden>Nenhum item ainda.</div>
+<div class="row" style="margin-top:12px"><button class="sec" id="cl" style="flex:1">Limpar concluídos</button></div></div>
+<script>
+const K=new URLSearchParams(location.search).get('k')||sessionStorage.getItem('k')||'';try{sessionStorage.setItem('k',K)}catch(e){}
+const $=id=>document.getElementById(id),msg=(t,e)=>{$('msg').textContent=t;$('msg').className=e?'err':''};
+const api=p=>fetch('/api/'+p+(p.includes('?')?'&':'?')+'k='+K).then(r=>r.json());
+async function load(){const s=await api('get');if(!$('c').value)$('c').placeholder=s.city||'Ex.: Recife';
+ const l=$('l');l.innerHTML='';$('em').hidden=s.notes.length>0;
+ s.notes.forEach((n,i)=>{const li=document.createElement('li');if(n.done)li.className='done';
+  const t=document.createElement('button');t.className='t';t.setAttribute('role','checkbox');t.setAttribute('aria-checked',n.done);
+  t.innerHTML='<i class="box"></i><span></span>';t.lastChild.textContent=n.t;t.onclick=()=>api('toggle?i='+i).then(load);
+  const x=document.createElement('button');x.className='x';x.textContent='×';x.setAttribute('aria-label','Remover '+n.t);x.onclick=()=>api('del?i='+i).then(load);
+  li.append(t,x);l.append(li)})}
+$('cs').onclick=async()=>{const v=$('c').value.trim();if(!v)return;const r=await api('city?q='+encodeURIComponent(v));msg(r.ok?'Cidade: '+r.msg+'':r.msg,!r.ok);if(r.ok)$('c').value=''};
+const add=async()=>{const v=$('n').value.trim();if(!v)return;await api('add?t='+encodeURIComponent(v));$('n').value='';load()};
+$('ad').onclick=add;$('n').onkeydown=e=>{if(e.key==='Enter')add()};$('c').onkeydown=e=>{if(e.key==='Enter')$('cs').click()};
+$('cl').onclick=()=>api('clear').then(load);
+load();setInterval(load,5000);
+</script></body></html>
