@@ -20,3 +20,5 @@ build/
 .idea/
 .vscode/
 local.properties
+*.iml
+.flutter-plugins-dependencies

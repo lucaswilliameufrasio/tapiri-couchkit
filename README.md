@@ -2,7 +2,7 @@
 
 Apps e ferramentas para controlar a TV do sofá: launcher, navegador controlado pelo celular, gerenciador de apps, cast, relógio e câmeras. Os apps são Android puro (min SDK 22, `LEANBACK_LAUNCHER`) e funcionam em Fire TV e Android TV. Testado em Fire TV Stick 4K (Fire OS 5 / Android 7.1) e em emuladores Android TV 7.1 e 16.
 
-- `apps/` — apps da TV (genéricos). `firetv/` — scripts de otimização, **só para Fire OS**. `PLANO.md` — próximos passos.
+- `apps/` — apps da TV (genéricos). `companion/` — app Flutter (Android/iOS) que controla todos eles pelo celular. `firetv/` — scripts de otimização, **só para Fire OS**. `PLANO.md` — próximos passos.
 
 - `firetv/apply.sh [disable|enable]` — debloat reversível (`firetv/debloat-list.txt`) + animações 0.5x.
 - `apps/build.sh phonebro|firehome` — compila sem Gradle (aapt2+javac+d8+apksigner) → `apps/out/*.apk`.
@@ -34,3 +34,6 @@ apps/fetch-libs.sh        # baixa zxing e media3 (uma vez)
 apps/build.sh homecam     # gera apps/out/homecam.apk (assina com apps/debug.keystore, criado na 1a vez)
 ```
 Requer Android SDK (build-tools 36, android-34) e JDK. A keystore de debug é gerada localmente e **não** vai para o git: se perdê-la, os apps precisam ser reinstalados (assinatura diferente). Os scripts de `firetv/` leem `STICK=ip:5555` do ambiente ou de um `.env` (copie `.env.example`).
+
+## Companion (Flutter)
+Ver `companion/README.md`. Pareia pelo QR da TV, guarda o token no Keychain/Keystore e reencontra o app se a porta mudar. Build: `cd companion && make check && make apk`.
