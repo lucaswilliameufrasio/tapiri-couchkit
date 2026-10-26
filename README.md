@@ -1,14 +1,18 @@
-# Fire TV Stick 4K (mantis, Fire OS 5 / Android 7.1) — `adb connect <ip>:5555`
+# tapiri-couchkit
 
-- `apply.sh [disable|enable]` — debloat reversível (`debloat-list.txt`) + animações 0.5x.
+Apps e ferramentas para controlar a TV do sofá: launcher, navegador controlado pelo celular, gerenciador de apps, cast, relógio e câmeras. Os apps são Android puro (min SDK 22, `LEANBACK_LAUNCHER`) e funcionam em Fire TV e Android TV. Testado em Fire TV Stick 4K (Fire OS 5 / Android 7.1) e em emuladores Android TV 7.1 e 16.
+
+- `apps/` — apps da TV (genéricos). `firetv/` — scripts de otimização, **só para Fire OS**. `PLANO.md` — próximos passos.
+
+- `firetv/apply.sh [disable|enable]` — debloat reversível (`firetv/debloat-list.txt`) + animações 0.5x.
 - `apps/build.sh phonebro|firehome` — compila sem Gradle (aapt2+javac+d8+apksigner) → `apps/out/*.apk`.
 - **PhoneBro**: navegador WebView; servidor HTTP na porta 8765, QR code na tela inicial (MENU mostra o QR). Cursor com D-pad, touchpad/teclado/URL/favoritos pelo celular.
 - **FireHome**: launcher próprio; abre no boot (+12s). Home do controle continua indo para o launcher da Amazon (pacote protegido, sem root).
-- `rollback-launcher.sh` — reativa o launcher Amazon (caso necessário).
-- `tune-official-launcher.sh [apply|revert]` — desliga anúncios personalizados, telemetria de uso e protetor de tela da Amazon; compila (`-m speed`) o launcher e as configurações.
+- `firetv/rollback-launcher.sh` — reativa o launcher Amazon (caso necessário).
+- `firetv/tune-official-launcher.sh [apply|revert]` — desliga anúncios personalizados, telemetria de uso e protetor de tela da Amazon; compila (`-m speed`) o launcher e as configurações.
 - PhoneBro escolhe a porta sozinho (última usada → 8765..8805 → qualquer livre); a URL/QR mostra a porta real.
 - **StickHub** (`release/stickhub.apk`): painel web (Android e iPhone) com lista de apps (abrir/encerrar/detalhes/desinstalar), envio e instalação de APK pelo celular, abrir link no PhoneBro, RAM/armazenamento e limpar RAM. Porta automática a partir de 8800, QR na tela da TV. Primeira instalação de APK exige liberar "fontes desconhecidas" para o StickHub.
-- `release/` — APKs prontos (phonebro, firehome, stickhub). `emulator/` — AVDs `tv25` (Android 7.1) e `tv36` (Android 16).
+- `release/` — APKs gerados localmente (não versionados). `emulator/` — AVDs `tv25` (Android 7.1) e `tv36` (Android 16).
 
 ## PhoneCast (`release/phonecast.apk`)
 Envia do celular (Android ou iPhone) para a TV: links (vídeo/áudio direto tocam no player; YouTube e sites abrem no app correspondente), fotos, vídeos e músicas (upload, tocados na TV). Controles no celular: pausar, ±10 s, barra de posição, volume, mudo, fechar. No controle da TV: OK pausa, setas buscam, Voltar fecha. Porta automática a partir de 8850, QR code na tela inicial. Testado no emulador Android 7.1 (foto, vídeo, controles, link, parar).
@@ -29,4 +33,4 @@ Ver `PLANO.md`: HomeDeck (ar condicionado Midea + tomadas inteligentes) e app co
 apps/fetch-libs.sh        # baixa zxing e media3 (uma vez)
 apps/build.sh homecam     # gera apps/out/homecam.apk (assina com apps/debug.keystore, criado na 1a vez)
 ```
-Requer Android SDK (build-tools 36, android-34) e JDK. A keystore de debug é gerada localmente e **não** vai para o git: se perdê-la, os apps precisam ser reinstalados (assinatura diferente). Os scripts de otimização leem `STICK=ip:5555` do ambiente ou de um `.env` (copie `.env.example`).
+Requer Android SDK (build-tools 36, android-34) e JDK. A keystore de debug é gerada localmente e **não** vai para o git: se perdê-la, os apps precisam ser reinstalados (assinatura diferente). Os scripts de `firetv/` leem `STICK=ip:5555` do ambiente ou de um `.env` (copie `.env.example`).

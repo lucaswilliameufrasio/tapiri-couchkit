@@ -1,5 +1,5 @@
 #!/bin/bash
-[ -f "$(dirname "$0")/.env" ] && . "$(dirname "$0")/.env"
+[ -f "$(dirname "$0")/../.env" ] && . "$(dirname "$0")/../.env"
 # uso: ./apply.sh [disable|enable]   (defina STICK=ip:5555)
 A="adb -s ${STICK:?defina STICK=ip:5555}"; cd "$(dirname "$0")"
 if [ "${1:-disable}" = enable ]; then

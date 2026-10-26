@@ -1,5 +1,5 @@
 #!/bin/bash
-[ -f "$(dirname "$0")/.env" ] && . "$(dirname "$0")/.env"
+[ -f "$(dirname "$0")/../.env" ] && . "$(dirname "$0")/../.env"
 # uso: ./tune-official-launcher.sh [apply|revert]   (defina STICK=ip:5555)
 A="adb -s ${STICK:?defina STICK=ip:5555}"
 if [ "${1:-apply}" = revert ]; then V=(0 0 0 1 1 1 1 1 1)  # valores originais
