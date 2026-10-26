@@ -8,6 +8,7 @@ Apps e ferramentas para controlar a TV do sofá: launcher, navegador controlado 
 - `apps/build.sh phonebro|firehome` — compila sem Gradle (aapt2+javac+d8+apksigner) → `apps/out/*.apk`.
 - **PhoneBro**: navegador WebView; servidor HTTP na porta 8765, QR code na tela inicial (MENU mostra o QR). Cursor com D-pad, touchpad/teclado/URL/favoritos pelo celular.
 - **FireHome**: launcher próprio; abre no boot (+12s). Home do controle continua indo para o launcher da Amazon (pacote protegido, sem root). Totalmente personalizável pelo celular (ver seção abaixo).
+- `firetv/install-app.sh app.apk` — instala/atualiza apps de fora da loja **mantendo o ícone** no launcher oficial (ver abaixo).
 - `firetv/rollback-launcher.sh` — reativa o launcher Amazon (caso necessário).
 - `firetv/tune-official-launcher.sh [apply|revert]` — desliga anúncios personalizados, telemetria de uso e protetor de tela da Amazon; compila (`-m speed`) o launcher e as configurações.
 - PhoneBro escolhe a porta sozinho (última usada → 8765..8805 → qualquer livre); a URL/QR mostra a porta real.
@@ -48,3 +49,6 @@ Sobe um servidor local, lista os endereços de cada interface de rede e mostra u
 
 ## FireHome personalizável
 MENU no controle (ou o tile "Personalizar") mostra um QR code com o endereço e o token (`http://IP:porta/?k=token`, porta automática a partir de 9000). Pelo celular, na página web (Android e iPhone) ou na tela FireHome do companion, dá para mudar com prévia ao vivo: tema (presets, cores do fundo e de destaque, cantos, tamanho dos cartões e do texto), papel de parede (com escurecimento), cabeçalho (relógio 12/24 h, data, RAM, saudação e clima por cidade), linhas da tela (ordem, visibilidade, cartões grandes, linhas personalizadas com apps escolhidos), favoritos (ordem), apps (esconder e renomear) e as ferramentas da linha Sistema. A configuração é um JSON validado no servidor (tipos e cores inválidos voltam ao padrão) e fica em `SharedPreferences`. API (todas exigem `?k=`): `GET/POST /api/config`, `/api/apps`, `/api/icon`, `/api/preview` (JPEG da tela), `POST /api/wallpaper`, `/api/wallpaperclear`, `/api/reset`.
+
+## Ícone sumido no launcher oficial (Fire OS)
+Apps instalados fora da loja perdem o ícone na grade "Seus aplicativos e jogos" quando são **atualizados** com `adb install -r` (o log mostra `AmazonAppstore.SideloadedAppManagerService: cannot update entry for package`). Desinstalar com `pm uninstall -k` (mantém os dados) e instalar de novo recria o registro e o ícone volta. Use `firetv/install-app.sh`. Atualizações feitas pelo StickHub (PackageInstaller) têm o mesmo limite.
