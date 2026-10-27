@@ -15,6 +15,7 @@ import 'package:couchkit_remote/features/hub/hub_page.dart';
 import 'package:couchkit_remote/features/panels/panel_view_page.dart';
 import 'package:couchkit_remote/features/phonebro/phonebro_page.dart';
 import 'package:couchkit_remote/features/shell/shell_page.dart';
+import 'package:couchkit_remote/features/tune/tune_page.dart';
 
 class AppRoutes implements RouteModule {
   AppRoutes(this._injector);
@@ -32,6 +33,12 @@ class AppRoutes implements RouteModule {
       }
       return PanelViewPage(panel: args.$1, hub: args.$2);
     });
+    router.register(
+      TunePage.route,
+      (context, args) => _endpointPage(args, (e) {
+        return TunePage(service: _services.hub(e));
+      }),
+    );
     router.register(AddPage.route, (context, args) => const AddPage());
     router.register(
       FireHomePage.route,

@@ -61,6 +61,25 @@ class InstalledApp {
   final String version;
 }
 
+/// Estado do ADB local da TV e do perfil de otimizacao em andamento.
+class TuneStatus {
+  const TuneStatus({required this.adb, required this.tune});
+
+  factory TuneStatus.fromJson(Json json) =>
+      TuneStatus(adb: '${json['state'] ?? ''}', tune: '${json['tune'] ?? ''}');
+
+  /// idle, waiting (aprovar na TV), ok ou error:mensagem.
+  final String adb;
+
+  /// "", rodando:nome:1/21, ok:nome ou erro:nome:mensagem.
+  final String tune;
+
+  bool get connected => adb == 'ok';
+  bool get waiting => adb == 'waiting';
+  bool get running => tune.startsWith('rodando');
+  String? get error => adb.startsWith('error:') ? adb.substring(6) : null;
+}
+
 class HubService {
   HubService(this._client);
 
@@ -81,6 +100,21 @@ class HubService {
       }
     }
     return result;
+  }
+
+  /// Pede ao StickHub para conectar no ADB da propria TV (1a vez: aprovar na TV).
+  Future<void> adbConnect() async {
+    await _client.getJson('/api/adbconnect');
+  }
+
+  Future<TuneStatus> tuneStatus() async {
+    return TuneStatus.fromJson(await _client.getJson('/api/adbstate'));
+  }
+
+  /// Inicia um perfil de otimizacao; false se ja ha outro rodando.
+  Future<bool> tune(String profile) async {
+    final json = await _client.getJson('/api/tune', {'name': profile});
+    return json['ok'] == true;
   }
 
   Uri iconUri(String pkg) => _client.uri('/api/icon', {'pkg': pkg});

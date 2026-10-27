@@ -1,5 +1,6 @@
 package com.lucas.stickhub;
 
+import com.lucas.common.Adb;
 import com.lucas.common.Pair;
 import android.app.ActivityManager;
 import android.app.PendingIntent;
@@ -40,6 +41,7 @@ final class Hub {
         app = ctx.getApplicationContext();
         SharedPreferences p = app.getSharedPreferences("hub", Context.MODE_PRIVATE);
         token = Pair.init(app, p);
+        Adb.init(p);
         HubServer s = new HubServer(new HubServer.Handler() {
             public HubServer.Resp handle(String m, String path, Map<String, String> q, long len, InputStream body) throws Exception { return route(m, path, q, len, body); }
         });
@@ -71,6 +73,17 @@ final class Hub {
         if (cmd.equals("installstatus")) return HubServer.Resp.json("{\"status\":" + q(installStatus) + "}");
         if (cmd.equals("install")) return install(q.get("name"), len, body);
         PackageManager pm = app.getPackageManager();
+        if (cmd.equals("adbconnect")) {
+            // o primeiro uso mostra "Permitir depuracao USB?" na TV: aprove com "Sempre permitir"
+            new Thread(new Runnable() { public void run() { try { Adb.shell("echo ok", 100000); } catch (Exception ignored) {} } }, "adb-connect").start();
+            return HubServer.Resp.json("{\"state\":" + q(Adb.state) + "}");
+        }
+        if (cmd.equals("adbstate")) return HubServer.Resp.json("{\"state\":" + q(Adb.state) + ",\"tune\":" + q(Tuner.status) + "}");
+        if (cmd.equals("tune")) {
+            String name = q.get("name");
+            boolean started = name != null && Tuner.start(name);
+            return ok(started, started ? "" : "perfil desconhecido ou outro em andamento");
+        }
         if (cmd.equals("launch")) {
             Intent i = pm.getLeanbackLaunchIntentForPackage(pkg); if (i == null) i = pm.getLaunchIntentForPackage(pkg);
             if (i == null) return ok(false, "sem tela de abertura");
