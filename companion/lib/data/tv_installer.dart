@@ -114,14 +114,27 @@ class TvInstaller {
           onProgress(app, InstallStep.sending, sent: sent / total),
     );
     onProgress(app, InstallStep.installing);
-    final listed = await connection.shell('pm list packages ${app.pkg}');
-    if (listed.split('\n').contains('package:${app.pkg}')) {
-      await connection.shell('pm uninstall -k ${app.pkg}');
-    }
-    final result = await connection.shell('pm install -r $remote');
-    await connection.shell('rm -f $remote');
-    if (!result.contains('Success')) {
-      throw AdbException('${app.label}: ${result.split('\n').last}');
+    try {
+      final listed = await connection.shell('pm list packages ${app.pkg}');
+      if (listed.split('\n').contains('package:${app.pkg}')) {
+        await connection.shell('pm uninstall -k ${app.pkg}');
+      }
+      // a Fire OS otimiza o app na instalacao: apps grandes passam de 1 min
+      final result = await connection.shell(
+        'pm install -r $remote',
+        timeout: const Duration(minutes: 5),
+      );
+      if (!result.contains('Success')) {
+        throw AdbException('${app.label}: ${result.split('\n').last}');
+      }
+    } on AdbException {
+      rethrow;
+    } finally {
+      try {
+        await connection.shell('rm -f $remote');
+      } on Object {
+        // conexao ja caiu; o arquivo em /data/local/tmp nao atrapalha
+      }
     }
   }
 }

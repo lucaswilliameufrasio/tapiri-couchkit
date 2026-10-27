@@ -17,6 +17,7 @@ import 'package:couchkit_remote/features/hub/hub_page.dart';
 import 'package:couchkit_remote/features/panels/panel_view_page.dart';
 import 'package:couchkit_remote/features/phonebro/phonebro_page.dart';
 import 'package:couchkit_remote/features/shell/shell_page.dart';
+import 'package:couchkit_remote/features/remote/remote_page.dart';
 import 'package:couchkit_remote/features/tune/tune_page.dart';
 import 'package:couchkit_remote/features/tvinstall/install_tv_page.dart';
 
@@ -48,6 +49,12 @@ class AppRoutes implements RouteModule {
         installer: _injector.get<TvInstaller>(),
         host: args is String ? args : null,
       ),
+    );
+    router.register(
+      RemotePage.route,
+      (context, args) => args is String
+          ? RemotePage(adb: _injector.get<TvAdb>(), host: args)
+          : const Scaffold(body: Center(child: Text('TV ausente'))),
     );
     router.register(AddPage.route, (context, args) => const AddPage());
     router.register(

@@ -144,6 +144,15 @@ class _HomeTabState extends State<HomeTab> {
                     onInstall: _install,
                   ),
                   const SizedBox(height: 10),
+                  _RemoteCard(
+                    enabled: controller.currentHost != null,
+                    onTap: () => router.push<void>(
+                      context,
+                      '/remote',
+                      args: controller.currentHost,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
                   _TuneCard(
                     enabled: widget.endpoint != null,
                     onTap: () => router.push<void>(
@@ -358,6 +367,34 @@ class _TuneCard extends StatelessWidget {
         leading: IconBadge(icon: Icons.speed, color: scheme.tertiary, size: 44),
         title: const Text('Otimizar a TV'),
         subtitle: const Text('Animações, menos lixo da Amazon, privacidade'),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: onTap,
+      ),
+    );
+  }
+}
+
+class _RemoteCard extends StatelessWidget {
+  const _RemoteCard({required this.enabled, required this.onTap});
+
+  final bool enabled;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      child: ListTile(
+        enabled: enabled,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        leading: IconBadge(
+          icon: Icons.settings_remote,
+          color: scheme.primary,
+          size: 44,
+        ),
+        title: const Text('Controle remoto'),
+        subtitle: const Text('Setas, voltar, início, mídia e volume'),
         trailing: const Icon(Icons.chevron_right),
         onTap: onTap,
       ),
