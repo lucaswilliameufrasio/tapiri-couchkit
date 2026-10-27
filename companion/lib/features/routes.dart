@@ -52,8 +52,8 @@ class AppRoutes implements RouteModule {
     );
     router.register(
       RemotePage.route,
-      (context, args) => args is String
-          ? RemotePage(adb: _injector.get<TvAdb>(), host: args)
+      (context, args) => args is (String, HubService?)
+          ? RemotePage(adb: _injector.get<TvAdb>(), host: args.$1, hub: args.$2)
           : const Scaffold(body: Center(child: Text('TV ausente'))),
     );
     router.register(AddPage.route, (context, args) => const AddPage());

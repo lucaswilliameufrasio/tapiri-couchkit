@@ -149,7 +149,7 @@ class _HomeTabState extends State<HomeTab> {
                     onTap: () => router.push<void>(
                       context,
                       '/remote',
-                      args: controller.currentHost,
+                      args: (controller.currentHost, widget.hub),
                     ),
                   ),
                   const SizedBox(height: 10),

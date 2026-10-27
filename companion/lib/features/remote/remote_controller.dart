@@ -23,7 +23,9 @@ enum RemoteKey {
   forward(90),
   volumeUp(24),
   volumeDown(25),
-  mute(164);
+  mute(164),
+  sleep(223),
+  wakeup(224);
 
   const RemoteKey(this.code);
 
@@ -66,6 +68,9 @@ class RemoteController extends ChangeNotifier {
   }
 
   void press(RemoteKey key) => _send('input keyevent ${key.code}');
+
+  /// Abre as configuracoes da Fire TV (a engrenagem do app da Amazon).
+  void openSettings() => _send('am start -a android.settings.SETTINGS');
 
   /// Digita [text] no campo em foco da TV.
   void type(String text) {
