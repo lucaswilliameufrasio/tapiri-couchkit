@@ -128,6 +128,11 @@ class AdbConnection {
       throw AdbException('A TV recusou o arquivo: $detail');
     }
     await _send(AdbCommand.close, _localId, remoteId);
+    // o adbd responde com CLSE: sem consumir, o proximo OPEN le essa sobra
+    var message = await _readMessage(const Duration(seconds: 15));
+    while (message.command != AdbCommand.close) {
+      message = await _readMessage(const Duration(seconds: 15));
+    }
   }
 
   Uint8List _syncPacket(String id, List<int> payload) {

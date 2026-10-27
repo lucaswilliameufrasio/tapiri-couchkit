@@ -116,7 +116,10 @@ class _HomeTabState extends State<HomeTab> {
       body: controller.loading
           ? const Center(child: CircularProgressIndicator())
           : controller.endpoints.isEmpty
-          ? _Onboarding(onScan: () => router.push<void>(context, '/add'))
+          ? _Onboarding(
+              onScan: () => router.push<void>(context, '/add'),
+              onInstall: () => router.push<void>(context, '/install-tv'),
+            )
           : RefreshIndicator(
               onRefresh: _refresh,
               child: ListView(
@@ -147,6 +150,14 @@ class _HomeTabState extends State<HomeTab> {
                       context,
                       '/tune',
                       args: widget.endpoint,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  _InstallCard(
+                    onTap: () => router.push<void>(
+                      context,
+                      '/install-tv',
+                      args: controller.currentHost,
                     ),
                   ),
                   const SectionTitle('Apps do couchkit'),
@@ -354,6 +365,32 @@ class _TuneCard extends StatelessWidget {
   }
 }
 
+class _InstallCard extends StatelessWidget {
+  const _InstallCard({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        leading: IconBadge(
+          icon: Icons.system_update,
+          color: scheme.secondary,
+          size: 44,
+        ),
+        title: const Text('Instalar ou atualizar apps da TV'),
+        subtitle: const Text('Pelo celular, sem PC'),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: onTap,
+      ),
+    );
+  }
+}
+
 class _AppGrid extends StatelessWidget {
   const _AppGrid({required this.controller, required this.router});
 
@@ -484,9 +521,10 @@ class _AppTile extends StatelessWidget {
 }
 
 class _Onboarding extends StatelessWidget {
-  const _Onboarding({required this.onScan});
+  const _Onboarding({required this.onScan, required this.onInstall});
 
   final VoidCallback onScan;
+  final VoidCallback onInstall;
 
   @override
   Widget build(BuildContext context) {
@@ -536,9 +574,9 @@ class _Onboarding extends StatelessWidget {
         const SizedBox(height: 28),
         step(
           1,
-          'Instale o StickHub na TV',
-          'Na primeira vez: abra o app Downloader na TV e baixe o StickHub '
-              'pelo endereço que o dist.py mostra (veja o README).',
+          'Instale os apps na TV',
+          'Ligue a Depuração ADB na TV e instale tudo daqui, pela rede, sem '
+              'PC. Se o StickHub já estiver lá, pule este passo.',
         ),
         step(
           2,
@@ -551,6 +589,12 @@ class _Onboarding extends StatelessWidget {
           'Um QR basta: os outros apps da TV são encontrados sozinhos.',
         ),
         const SizedBox(height: 12),
+        OutlinedButton.icon(
+          icon: const Icon(Icons.download),
+          label: const Text('Instalar apps na TV'),
+          onPressed: onInstall,
+        ),
+        const SizedBox(height: 10),
         FilledButton.icon(
           icon: const Icon(Icons.qr_code_scanner),
           label: const Text('Escanear QR code'),

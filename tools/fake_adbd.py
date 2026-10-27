@@ -118,15 +118,23 @@ def handle(conn):
                 else:
                     print("shell:", service)
                     send(conn, OKAY, 7, a0)
-                    send(conn, WRTE, 7, a0, f"fake:{service}\n".encode())
+                    send(conn, WRTE, 7, a0, reply(service).encode())
                     recv(conn)  # OKAY do cliente
                     send(conn, CLSE, 7, a0)
-            elif cmd == CLSE:
-                return
+            # CLSE de um stream já encerrado: o adbd real segue na conexão
     except (EOFError, AssertionError, ConnectionError) as error:
         print("fim:", error)
     finally:
         conn.close()
+
+
+def reply(service):
+    """Respostas que o app espera do pm; o resto é eco."""
+    if service.startswith("shell:pm list packages "):
+        return "package:" + service.split()[-1] + "\n"
+    if service.startswith("shell:pm install"):
+        return "Success\n"
+    return f"fake:{service}\n"
 
 
 def main():

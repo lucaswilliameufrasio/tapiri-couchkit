@@ -23,3 +23,6 @@ local.properties
 *.iml
 .flutter-plugins-dependencies
 dist/
+
+# APKs dos apps da TV embutidos pelo tools/dist.py --build
+companion/assets/tv/*.apk

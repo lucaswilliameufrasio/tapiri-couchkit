@@ -75,15 +75,22 @@ def flutter_cmd():
 def build(with_tv):
     DIST.mkdir(exist_ok=True)
     companion = ROOT / "companion"
-    run(flutter_cmd() + ["build", "apk", "--release", "--target-platform", "android-arm64"], cwd=companion)
-    src = companion / "build/app/outputs/flutter-apk/app-release.apk"
-    shutil.copy2(src, DIST / "couchkit-remote.apk")
     if with_tv:
         (DIST / "tv").mkdir(exist_ok=True)
         run([ROOT / "apps/fetch-libs.sh"], quiet=True)
         for app in TV_APPS:
             run([ROOT / "apps/build.sh", app], quiet=True)
             shutil.copy2(ROOT / "apps/out" / f"{app}.apk", DIST / "tv" / f"{app}.apk")
+    # os APKs da TV vão dentro do Couchkit: ele instala na TV por ADB, sem PC
+    embedded = companion / "assets/tv"
+    embedded.mkdir(parents=True, exist_ok=True)
+    for old in embedded.glob("*.apk"):
+        old.unlink()
+    for apk in sorted((DIST / "tv").glob("*.apk")) if (DIST / "tv").is_dir() else []:
+        shutil.copy2(apk, embedded / apk.name)
+    run(flutter_cmd() + ["build", "apk", "--release", "--target-platform", "android-arm64"], cwd=companion)
+    src = companion / "build/app/outputs/flutter-apk/app-release.apk"
+    shutil.copy2(src, DIST / "couchkit-remote.apk")
 
 
 def interfaces():

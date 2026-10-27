@@ -6,6 +6,7 @@ import 'package:couchkit_remote/data/models/panel.dart';
 import 'package:couchkit_remote/data/models/tv_endpoint.dart';
 import 'package:couchkit_remote/data/services/hub_service.dart';
 import 'package:couchkit_remote/data/tv_adb.dart';
+import 'package:couchkit_remote/data/tv_installer.dart';
 import 'package:couchkit_remote/data/tv_service_factory.dart';
 import 'package:couchkit_remote/features/add/add_page.dart';
 import 'package:couchkit_remote/features/cam/cam_page.dart';
@@ -17,6 +18,7 @@ import 'package:couchkit_remote/features/panels/panel_view_page.dart';
 import 'package:couchkit_remote/features/phonebro/phonebro_page.dart';
 import 'package:couchkit_remote/features/shell/shell_page.dart';
 import 'package:couchkit_remote/features/tune/tune_page.dart';
+import 'package:couchkit_remote/features/tvinstall/install_tv_page.dart';
 
 class AppRoutes implements RouteModule {
   AppRoutes(this._injector);
@@ -39,6 +41,13 @@ class AppRoutes implements RouteModule {
       (context, args) => _endpointPage(args, (e) {
         return TunePage(adb: _injector.get<TvAdb>(), host: e.host);
       }),
+    );
+    router.register(
+      InstallTvPage.route,
+      (context, args) => InstallTvPage(
+        installer: _injector.get<TvInstaller>(),
+        host: args is String ? args : null,
+      ),
     );
     router.register(AddPage.route, (context, args) => const AddPage());
     router.register(
