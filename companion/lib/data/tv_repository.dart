@@ -26,6 +26,8 @@ class TvRepository {
           );
 
   static const _key = 'endpoints';
+  static const _selectedKey = 'selected_host';
+  static const _namesKey = 'tv_names';
 
   final KeyValueStore _store;
   final Dio _dio;
@@ -76,6 +78,58 @@ class TvRepository {
       }
     }
     await _persist(next);
+  }
+
+  /// Remove todos os apps de uma TV (e o nome dela).
+  Future<void> removeHost(String host) async {
+    final all = await load();
+    final next = <TvEndpoint>[];
+    for (final item in all) {
+      if (item.host != host) {
+        next.add(item);
+      }
+    }
+    await _persist(next);
+    final names = await loadNames();
+    if (names.remove(host) != null) {
+      await _store.write(_namesKey, jsonEncode(names));
+    }
+    if (await selectedHost() == host) {
+      await _store.delete(_selectedKey);
+    }
+  }
+
+  Future<String?> selectedHost() => _store.read(_selectedKey);
+
+  Future<void> selectHost(String host) => _store.write(_selectedKey, host);
+
+  /// Nomes dados pelo usuario as TVs (host -> nome).
+  Future<Map<String, String>> loadNames() async {
+    final raw = await _store.read(_namesKey);
+    if (raw == null || raw.isEmpty) {
+      return {};
+    }
+    final decoded = jsonDecode(raw);
+    final result = <String, String>{};
+    if (decoded is Map) {
+      for (final entry in decoded.entries) {
+        if (entry.key is String && entry.value is String) {
+          result[entry.key as String] = entry.value as String;
+        }
+      }
+    }
+    return result;
+  }
+
+  Future<void> renameHost(String host, String name) async {
+    final names = await loadNames();
+    final trimmed = name.trim();
+    if (trimmed.isEmpty) {
+      names.remove(host);
+    } else {
+      names[host] = trimmed;
+    }
+    await _store.write(_namesKey, jsonEncode(names));
   }
 
   Future<void> _persist(List<TvEndpoint> items) {

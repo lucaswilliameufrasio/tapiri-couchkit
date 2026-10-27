@@ -35,6 +35,7 @@ class _HomeTabState extends State<HomeTab> {
   void didUpdateWidget(HomeTab oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.endpoint != widget.endpoint) {
+      _info = null;
       _loadInfo();
     }
   }
@@ -174,11 +175,9 @@ class _TvCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final text = Theme.of(context).textTheme;
-    final host = controller.byHost.keys.isEmpty
-        ? ''
-        : controller.byHost.keys.first;
+    final host = controller.currentHost ?? '';
     final online = controller.onlineCount;
-    final total = controller.endpoints.length;
+    final total = controller.current.length;
     final info = this.info;
     String gb(int mb) => '${(mb / 1024).toStringAsFixed(1)} GB';
     return Card(
@@ -187,38 +186,55 @@ class _TvCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                IconBadge(icon: Icons.tv, color: scheme.primary, size: 52),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        info?.model.isNotEmpty == true ? info!.model : 'Sua TV',
-                        style: text.titleLarge,
-                      ),
-                      const SizedBox(height: 2),
-                      Row(
-                        children: [
-                          StatusDot(
-                            color: online > 0 ? Colors.green : Colors.grey,
-                          ),
-                          const SizedBox(width: 6),
-                          Flexible(
-                            child: Text(
-                              '$online de $total apps online · $host',
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(color: scheme.onSurfaceVariant),
+            InkWell(
+              borderRadius: BorderRadius.circular(12),
+              onTap: () => _showTvSwitcher(context, controller, onPair),
+              child: Row(
+                children: [
+                  IconBadge(icon: Icons.tv, color: scheme.primary, size: 52),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                controller.names[host] ??
+                                    (info?.model.isNotEmpty == true
+                                        ? info!.model
+                                        : 'Sua TV'),
+                                overflow: TextOverflow.ellipsis,
+                                style: text.titleLarge,
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
-                    ],
+                            const Icon(Icons.arrow_drop_down),
+                          ],
+                        ),
+                        const SizedBox(height: 2),
+                        Row(
+                          children: [
+                            StatusDot(
+                              color: online > 0 ? Colors.green : Colors.grey,
+                            ),
+                            const SizedBox(width: 6),
+                            Flexible(
+                              child: Text(
+                                '$online de $total apps online · $host',
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: scheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
             if (info != null) ...[
               const SizedBox(height: 18),
@@ -355,9 +371,9 @@ class _AppGrid extends StatelessWidget {
         crossAxisSpacing: 10,
         childAspectRatio: 1.35,
       ),
-      itemCount: controller.endpoints.length,
+      itemCount: controller.current.length,
       itemBuilder: (context, index) {
-        final endpoint = controller.endpoints[index];
+        final endpoint = controller.current[index];
         final presence = controller.presence[endpoint.id] ?? Presence.checking;
         return _AppTile(
           endpoint: endpoint,
@@ -596,5 +612,128 @@ class _LinkSheetState extends State<_LinkSheet> {
         ],
       ),
     );
+  }
+}
+
+void _showTvSwitcher(
+  BuildContext context,
+  HomeController controller,
+  VoidCallback onAdd,
+) {
+  showModalBottomSheet<void>(
+    context: context,
+    showDragHandle: true,
+    builder: (sheet) => SafeArea(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (final host in controller.hosts)
+            ListTile(
+              leading: Icon(
+                host == controller.currentHost
+                    ? Icons.radio_button_checked
+                    : Icons.radio_button_off,
+              ),
+              title: Text(controller.nameOf(host)),
+              subtitle: Text(
+                '${controller.byHost[host]?.length ?? 0} apps · $host',
+              ),
+              onTap: () {
+                Navigator.pop(sheet);
+                controller.select(host);
+              },
+            ),
+          const Divider(),
+          ListTile(
+            leading: const Icon(Icons.add),
+            title: const Text('Adicionar outra TV'),
+            onTap: () {
+              Navigator.pop(sheet);
+              onAdd();
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.edit_outlined),
+            title: const Text('Renomear esta TV'),
+            onTap: () {
+              Navigator.pop(sheet);
+              _renameTv(context, controller);
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.delete_outline),
+            title: const Text('Remover esta TV'),
+            onTap: () {
+              Navigator.pop(sheet);
+              _removeTv(context, controller);
+            },
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+Future<void> _renameTv(BuildContext context, HomeController controller) async {
+  final host = controller.currentHost;
+  if (host == null) {
+    return;
+  }
+  final field = TextEditingController(text: controller.names[host] ?? '');
+  final name = await showDialog<String>(
+    context: context,
+    builder: (dialog) => AlertDialog(
+      title: const Text('Nome da TV'),
+      content: TextField(
+        controller: field,
+        autofocus: true,
+        textCapitalization: TextCapitalization.sentences,
+        decoration: const InputDecoration(hintText: 'Sala, Quarto…'),
+        onSubmitted: (value) => Navigator.pop(dialog, value),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(dialog),
+          child: const Text('Cancelar'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.pop(dialog, field.text),
+          child: const Text('Salvar'),
+        ),
+      ],
+    ),
+  );
+  field.dispose();
+  if (name != null) {
+    await controller.rename(host, name);
+  }
+}
+
+Future<void> _removeTv(BuildContext context, HomeController controller) async {
+  final host = controller.currentHost;
+  if (host == null) {
+    return;
+  }
+  final ok = await showDialog<bool>(
+    context: context,
+    builder: (dialog) => AlertDialog(
+      title: Text('Remover ${controller.nameOf(host)}?'),
+      content: const Text(
+        'Os apps e tokens dessa TV serão apagados deste celular.',
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(dialog, false),
+          child: const Text('Cancelar'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.pop(dialog, true),
+          child: const Text('Remover'),
+        ),
+      ],
+    ),
+  );
+  if (ok == true) {
+    await controller.removeHost(host);
   }
 }
