@@ -59,6 +59,34 @@ def verify(sig, token):
     return False
 
 
+def sync(conn, a0):
+    """Servico sync: confere SEND/DATA/DONE e responde OKAY."""
+    send(conn, OKAY, 7, a0)
+    buf, path, got = b"", None, 0
+    while True:
+        cmd, _x0, _x1, data = recv(conn)
+        if cmd == WRTE:
+            send(conn, OKAY, 7, a0)
+            buf += data
+            while len(buf) >= 8:
+                tag, size = buf[:4], struct.unpack("<I", buf[4:8])[0]
+                if tag == b"DONE":
+                    buf = buf[8:]
+                    print("sync:", path, got, "bytes")
+                    send(conn, WRTE, 7, a0, b"OKAY\0\0\0\0")
+                elif len(buf) < 8 + size:
+                    break
+                else:
+                    payload, buf = buf[8 : 8 + size], buf[8 + size :]
+                    if tag == b"SEND":
+                        path = payload.decode()
+                    elif tag == b"DATA":
+                        got += size
+        elif cmd == CLSE:
+            send(conn, CLSE, 7, a0)
+            return
+
+
 def handle(conn):
     try:
         cmd, *_ = recv(conn)
@@ -84,12 +112,16 @@ def handle(conn):
         while True:
             cmd, a0, _a1, data = recv(conn)
             if cmd == OPEN:
-                line = data.rstrip(b"\0").decode()
-                print("shell:", line)
-                send(conn, OKAY, 7, a0)
-                send(conn, WRTE, 7, a0, f"fake:{line}\n".encode())
-                recv(conn)  # OKAY do cliente
-                send(conn, CLSE, 7, a0)
+                service = data.rstrip(b"\0").decode()
+                if service == "sync:":
+                    sync(conn, a0)
+                else:
+                    print("shell:", service)
+                    send(conn, OKAY, 7, a0)
+                    send(conn, WRTE, 7, a0, f"fake:{service}\n".encode())
+                    recv(conn)  # OKAY do cliente
+                    send(conn, CLSE, 7, a0)
+            elif cmd == CLSE:
                 return
     except (EOFError, AssertionError, ConnectionError) as error:
         print("fim:", error)

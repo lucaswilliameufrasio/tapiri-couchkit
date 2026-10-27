@@ -28,3 +28,8 @@ class InvalidConnectionUrlException extends AppException {
     super.message = 'Endereço inválido: falta o token (?k=...)',
   ]);
 }
+
+/// Falha ao falar ADB com a TV (recusou, outro cliente conectado, rede...).
+class AdbException extends AppException {
+  const AdbException(super.message);
+}
