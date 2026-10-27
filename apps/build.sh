@@ -11,7 +11,7 @@ LINK=(link -o "$OUT/base.apk" -I $JAR --manifest $APP/AndroidManifest.xml --min-
 $BT/aapt2 "${LINK[@]}"
 CP=$JAR:lib/zxing-core.jar
 EXTRA=(); [ $APP = homecam ] && EXTRA=(lib/media3/*.jar) && CP=$CP:$(printf "%s:" lib/media3/*.jar)
-javac --release 8 -Xlint:-options -cp $CP -d "$OUT/cls" $(find $APP/src -name '*.java')
+javac --release 8 -Xlint:-options -cp $CP -d "$OUT/cls" $(find $APP/src common/src -name "*.java")
 LIBS=(lib/zxing-core.jar "${EXTRA[@]}")
 $BT/d8 --min-api 22 --lib $JAR --output "$OUT" $(find "$OUT/cls" -name '*.class') "${LIBS[@]}"
 cp "$OUT/base.apk" "$OUT/un.apk"; (cd "$OUT" && zip -q -j un.apk classes.dex)

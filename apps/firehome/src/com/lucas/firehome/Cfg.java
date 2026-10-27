@@ -1,5 +1,6 @@
 package com.lucas.firehome;
 
+import com.lucas.common.Pair;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
@@ -39,8 +40,7 @@ final class Cfg {
         if (server != null) return;
         app = ctx.getApplicationContext();
         prefs = app.getSharedPreferences("firehome", Context.MODE_PRIVATE);
-        token = prefs.getString("token", null);
-        if (token == null) { token = UUID.randomUUID().toString().substring(0, 8); prefs.edit().putString("token", token).apply(); }
+        token = Pair.init(app, prefs);
         load();
         ConfigServer s = new ConfigServer(new ConfigServer.Handler() {
             public ConfigServer.Resp handle(String m, String path, Map<String, String> q, long len, InputStream body) throws Exception { return route(m, path, q, len, body); }
@@ -153,7 +153,7 @@ final class Cfg {
     // ---------- Rotas ----------
     private static ConfigServer.Resp route(String method, String path, Map<String, String> q, long len, InputStream body) throws Exception {
         if (path.equals("/")) return ConfigServer.Resp.html(asset("firehome.html"));
-        if (!path.startsWith("/api/") || !token.equals(q.get("k"))) return ConfigServer.Resp.text(403, "text/plain", "forbidden");
+        if (!path.startsWith("/api/") || !Pair.token().equals(q.get("k"))) return ConfigServer.Resp.text(403, "text/plain", "forbidden");
         String cmd = path.substring(5);
         if (cmd.equals("state")) return ConfigServer.Resp.json("{\"app\":\"firehome\",\"v\":1,\"port\":" + port + ",\"wallpaper\":" + wallpaperFile().exists() + "}");
         if (cmd.equals("config")) {

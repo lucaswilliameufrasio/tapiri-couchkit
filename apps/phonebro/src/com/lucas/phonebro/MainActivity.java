@@ -1,5 +1,6 @@
 package com.lucas.phonebro;
 
+import com.lucas.common.Pair;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
@@ -65,8 +66,7 @@ public class MainActivity extends Activity {
     @Override protected void onCreate(Bundle b) {
         super.onCreate(b);
         prefs = getSharedPreferences("phonebro", MODE_PRIVATE);
-        token = prefs.getString("token", null);
-        if (token == null) { token = UUID.randomUUID().toString().substring(0, 8); prefs.edit().putString("token", token).apply(); }
+        token = Pair.init(this, prefs);
         desktop = prefs.getBoolean("desktop", true);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
@@ -270,7 +270,7 @@ public class MainActivity extends Activity {
         try {
             if (path.equals("/")) return RemoteServer.Response.html(asset("remote.html"));
             if (path.equals("/start")) return RemoteServer.Response.html(startPage());
-            if (!path.startsWith("/api/") || !token.equals(q.get("k"))) return RemoteServer.Response.utf8(403, "text/plain", "forbidden");
+            if (!path.startsWith("/api/") || !Pair.token().equals(q.get("k"))) return RemoteServer.Response.utf8(403, "text/plain", "forbidden");
             final String cmd = path.substring(5);
             ui.post(new Runnable() { public void run() { try { exec(cmd, q); } catch (Exception ignored) { } } });
             if (cmd.equals("state")) return RemoteServer.Response.json(stateJson());

@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 
+import 'package:couchkit_remote/data/models/app_kind.dart';
 import 'package:couchkit_remote/data/models/tv_endpoint.dart';
 import 'package:couchkit_remote/data/tv_repository.dart';
 
@@ -13,6 +14,29 @@ class HomeController extends ChangeNotifier {
   List<TvEndpoint> endpoints = [];
   final Map<String, Presence> presence = {};
   bool loading = true;
+
+  /// Quantos apps o ultimo pareamento encontrou alem do que foi escaneado.
+  int discovered = 0;
+
+  /// StickHub da TV, que alimenta o lancador, o painel do sistema e os atalhos.
+  TvEndpoint? get hub {
+    for (final endpoint in endpoints) {
+      if (endpoint.kind == AppKind.stickhub) {
+        return endpoint;
+      }
+    }
+    return null;
+  }
+
+  int get onlineCount {
+    var count = 0;
+    for (final endpoint in endpoints) {
+      if (presence[endpoint.id] == Presence.online) {
+        count++;
+      }
+    }
+    return count;
+  }
 
   Future<void> load() async {
     endpoints = await _repository.load();
@@ -59,6 +83,8 @@ class HomeController extends ChangeNotifier {
 
   Future<TvEndpoint> pair(String url) async {
     final endpoint = await _repository.pair(url);
+    final siblings = await _repository.discover(endpoint.host, endpoint.token);
+    discovered = siblings.length > 1 ? siblings.length - 1 : 0;
     endpoints = await _repository.load();
     presence[endpoint.id] = Presence.online;
     notifyListeners();

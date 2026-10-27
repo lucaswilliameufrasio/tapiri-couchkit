@@ -36,7 +36,13 @@ class _AddPageState extends State<AddPage> {
       if (!mounted) {
         return;
       }
-      showMessage(context, '${endpoint.kind.label} adicionado');
+      final extra = controller.discovered;
+      showMessage(
+        context,
+        extra > 0
+            ? '${endpoint.kind.label} e mais $extra apps adicionados'
+            : '${endpoint.kind.label} adicionado',
+      );
       Navigator.of(context).pop();
     } catch (error) {
       if (mounted) {

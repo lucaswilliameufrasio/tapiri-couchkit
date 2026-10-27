@@ -2,16 +2,19 @@ import 'package:flutter/material.dart';
 
 import 'package:couchkit_remote/core/di/injector.dart';
 import 'package:couchkit_remote/core/navigation/router.dart';
+import 'package:couchkit_remote/data/models/panel.dart';
 import 'package:couchkit_remote/data/models/tv_endpoint.dart';
+import 'package:couchkit_remote/data/services/hub_service.dart';
 import 'package:couchkit_remote/data/tv_service_factory.dart';
 import 'package:couchkit_remote/features/add/add_page.dart';
 import 'package:couchkit_remote/features/cam/cam_page.dart';
 import 'package:couchkit_remote/features/cast/cast_page.dart';
 import 'package:couchkit_remote/features/clock/clock_page.dart';
 import 'package:couchkit_remote/features/firehome/firehome_page.dart';
-import 'package:couchkit_remote/features/home/home_page.dart';
 import 'package:couchkit_remote/features/hub/hub_page.dart';
+import 'package:couchkit_remote/features/panels/panel_view_page.dart';
 import 'package:couchkit_remote/features/phonebro/phonebro_page.dart';
+import 'package:couchkit_remote/features/shell/shell_page.dart';
 
 class AppRoutes implements RouteModule {
   AppRoutes(this._injector);
@@ -22,7 +25,13 @@ class AppRoutes implements RouteModule {
 
   @override
   void register(RouterService router) {
-    router.register(HomePage.route, (context, args) => const HomePage());
+    router.register(ShellPage.route, (context, args) => const ShellPage());
+    router.register(PanelViewPage.route, (context, args) {
+      if (args is! (Panel, HubService?)) {
+        return const Scaffold(body: Center(child: Text('Painel ausente')));
+      }
+      return PanelViewPage(panel: args.$1, hub: args.$2);
+    });
     router.register(AddPage.route, (context, args) => const AddPage());
     router.register(
       FireHomePage.route,

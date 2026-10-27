@@ -193,6 +193,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
     ipa = None
     ipa_meta = None
     https_port = None
+    port = None
 
     def log_message(self, fmt, *args):
         # requisições malformadas (ex.: TLS na porta HTTP) chegam sem command/path
@@ -218,6 +219,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
         host = self.headers.get("Host", "").split(":")[0]
         if url.path == "/":
             return self.send_bytes(200, self.page(host).encode(), "text/html; charset=utf-8")
+        if url.path == "/h" and "tv/stickhub.apk" in self.files:
+            # endereco curto para digitar com o controle no app Downloader
+            return self.stream(self.files["tv/stickhub.apk"])
         if url.path == "/ca.crt":
             return self.send_bytes(200, self.ca.read_bytes(), TYPES[".crt"], "couchkit-ca.crt")
         if url.path == "/manifest.plist" and self.ipa:
@@ -262,6 +266,14 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 "2. Abra esta página por <b>https</b> e toque em Instalar. O IPA precisa estar assinado com um perfil "
                 "que inclua o UDID deste aparelho; no iOS 16+ ative o Modo Desenvolvedor.</p></section>"
             )
+        tv_help = ""
+        if "tv/stickhub.apk" in self.files:
+            tv_help = (
+                "<section><h2>Fire TV (primeira vez)</h2><p>Na TV, instale o app <b>Downloader</b> (loja da Amazon), "
+                f"abra-o e digite <b>{html.escape(host)}:{self.port}/h?k={self.token}</b> para baixar e instalar o StickHub. "
+                "Depois abra o StickHub, aperte MENU, e escaneie o QR no Couchkit: os outros apps da TV "
+                "(<code>tv/*.apk</code> abaixo) podem ser enviados pelo próprio Couchkit.</p></section>"
+            )
         body = "".join(rows) or "<li>Nada em dist/. Rode com --build.</li>"
         return f"""<!doctype html><html lang="pt-BR"><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1"><title>Couchkit dist</title>
@@ -272,7 +284,7 @@ h1{{font-size:22px}}ul{{list-style:none;padding:0}}li{{display:flex;align-items:
 gap:12px;background:var(--card);border-radius:16px;padding:14px 16px;margin:10px 0}}
 small{{display:block;opacity:.7;margin-top:2px}}.btn{{background:var(--ac);color:var(--bg);padding:10px 16px;
 border-radius:20px;text-decoration:none;white-space:nowrap}}section{{background:var(--card);border-radius:16px;padding:4px 16px}}</style>
-<h1>Couchkit · downloads locais</h1><ul>{body}</ul>{ios_help}</html>"""
+<h1>Couchkit · downloads locais</h1><ul>{body}</ul>{tv_help}{ios_help}</html>"""
 
 
 class Server(socketserver.ThreadingMixIn, http.server.HTTPServer):
@@ -325,6 +337,7 @@ def main():
 
     http_server = bind(args.port)
     https_server = bind(args.https_port, (crt, key))
+    Handler.port = http_server.server_address[1]
     Handler.https_port = https_server.server_address[1]
     for server in (http_server, https_server):
         threading.Thread(target=server.serve_forever, daemon=True).start()
@@ -337,6 +350,8 @@ def main():
         https_url = f"https://{ip}:{Handler.https_port}/?k={Handler.token}"
         print(f"\n[{name}] {ip}\n  Android: {http_url}")
         show_qr(http_url)
+        if "tv/stickhub.apk" in files and name != "tailscale0":
+            print(f"  Fire TV (app Downloader): {ip}:{http_server.server_address[1]}/h?k={Handler.token}")
         if ipa:
             print(f"  iPhone (https): {https_url}")
             show_qr(https_url)

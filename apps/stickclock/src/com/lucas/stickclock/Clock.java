@@ -1,5 +1,6 @@
 package com.lucas.stickclock;
 
+import com.lucas.common.Pair;
 import android.content.Context;
 import android.content.SharedPreferences;
 
@@ -26,8 +27,7 @@ final class Clock {
         if (server != null) return;
         app = ctx.getApplicationContext();
         prefs = app.getSharedPreferences("clock", Context.MODE_PRIVATE);
-        token = prefs.getString("token", null);
-        if (token == null) { token = UUID.randomUUID().toString().substring(0, 8); prefs.edit().putString("token", token).apply(); }
+        token = Pair.init(app, prefs);
         ClockServer s = new ClockServer(new ClockServer.Handler() {
             public ClockServer.Resp handle(String m, String path, Map<String, String> q, long len, InputStream body) throws Exception { return route(m, path, q, len, body); }
         });
@@ -99,7 +99,7 @@ final class Clock {
     static ClockServer.Resp route(String method, String path, Map<String, String> q, long len, InputStream body) throws Exception {
         if (path.equals("/")) return ClockServer.Resp.html(asset("clock.html"));
         if (!path.startsWith("/api/")) return ClockServer.Resp.text(404, "text/plain", "nao encontrado");
-        if (!token.equals(q.get("k"))) return ClockServer.Resp.text(403, "application/json", "{\"ok\":false,\"error\":\"token\"}");
+        if (!Pair.token().equals(q.get("k"))) return ClockServer.Resp.text(403, "application/json", "{\"ok\":false,\"error\":\"token\"}");
 
         if (path.equals("/api/get")) {
             StringBuilder b = new StringBuilder("{\"city\":" + q(city()) + ",\"notes\":[");

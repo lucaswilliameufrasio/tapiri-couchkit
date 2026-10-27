@@ -121,4 +121,39 @@ void main() {
     expect(moved?.token, 'tok');
     expect((await repository.load()).single.port, tv.port);
   });
+
+  group('discover', () {
+    Future<FakeTv> fixed(String title, int port, {String token = 'a1b2c3d4'}) {
+      return FakeTv.start(title: title, port: port, token: token).then((tv) {
+        servers.add(tv);
+        return tv;
+      });
+    }
+
+    test(
+      'acha os apps que aceitam o token e ignora os de outro token',
+      () async {
+        await fixed('PhoneBro Remote', 48101);
+        await fixed('HomeCam', 48102);
+        await fixed('StickClock', 48103, token: 'outro999');
+        final ranges = {
+          AppKind.phonebro: (48101, 48101),
+          AppKind.homecam: (48102, 48102),
+          AppKind.stickclock: (48103, 48103),
+        };
+
+        final found = await repository.discover(
+          '127.0.0.1',
+          'a1b2c3d4',
+          ranges: ranges,
+        );
+
+        expect(found.map((e) => e.kind).toSet(), {
+          AppKind.phonebro,
+          AppKind.homecam,
+        });
+        expect((await repository.load()).length, 2);
+      },
+    );
+  });
 }

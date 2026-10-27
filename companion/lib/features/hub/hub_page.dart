@@ -1,10 +1,8 @@
-import 'dart:io';
-
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
 import 'package:couchkit_remote/core/ui/describe_error.dart';
 import 'package:couchkit_remote/data/services/hub_service.dart';
+import 'package:couchkit_remote/features/hub/install_flow.dart';
 
 class HubPage extends StatefulWidget {
   const HubPage({required this.service, super.key});
@@ -58,37 +56,15 @@ class _HubPageState extends State<HubPage> {
   }
 
   Future<void> _installApk() async {
-    final picked = await FilePicker.pickFile();
-    final path = picked?.path;
-    if (path == null || !mounted) {
-      return;
-    }
-    if (!path.toLowerCase().endsWith('.apk')) {
-      showMessage(context, 'Escolha um arquivo .apk');
-      return;
-    }
-    setState(() => _progress = 0);
-    final message = await guarded(
+    await installApkFlow(
       context,
-      () => _service.installApk(
-        File(path),
-        onProgress: (sent, total) {
-          if (mounted && total > 0) {
-            setState(() => _progress = sent / total);
-          }
-        },
-      ),
+      _service,
+      onProgress: (value) {
+        if (mounted) {
+          setState(() => _progress = value);
+        }
+      },
     );
-    if (!mounted) {
-      return;
-    }
-    setState(() => _progress = null);
-    if (message != null) {
-      showMessage(
-        context,
-        message.isEmpty ? 'Enviado. Confirme a instalação na TV.' : message,
-      );
-    }
   }
 
   Future<void> _act(Future<String> Function() action) async {

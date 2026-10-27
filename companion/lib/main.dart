@@ -5,17 +5,22 @@ import 'package:couchkit_remote/core/di/injector.dart';
 import 'package:couchkit_remote/core/navigation/router.dart';
 import 'package:couchkit_remote/core/ui/theme.dart';
 import 'package:couchkit_remote/data/secure_storage_service.dart';
+import 'package:couchkit_remote/data/panels_repository.dart';
 import 'package:couchkit_remote/data/tv_repository.dart';
 import 'package:couchkit_remote/data/tv_service_factory.dart';
 import 'package:couchkit_remote/features/home/home_controller.dart';
-import 'package:couchkit_remote/features/home/home_page.dart';
+import 'package:couchkit_remote/features/panels/panels_controller.dart';
 import 'package:couchkit_remote/features/routes.dart';
+import 'package:couchkit_remote/features/shell/shell_page.dart';
 
 Injector buildInjector() {
   final injector = Injector();
   injector.registerSingleton<KeyValueStore>(SecureStorageService());
   injector.registerLazySingleton<TvRepository>(
     () => TvRepository(injector.get<KeyValueStore>()),
+  );
+  injector.registerLazySingleton<PanelsRepository>(
+    () => PanelsRepository(injector.get<KeyValueStore>()),
   );
   injector.registerSingleton<TvServiceFactory>(const TvServiceFactory());
   injector.registerLazySingleton<RouterService>(() {
@@ -41,6 +46,10 @@ class CouchkitApp extends StatelessWidget {
       providers: [
         Provider<Injector>.value(value: injector),
         ChangeNotifierProvider(
+          create: (_) =>
+              PanelsController(injector.get<PanelsRepository>())..load(),
+        ),
+        ChangeNotifierProvider(
           create: (_) => HomeController(injector.get<TvRepository>())..load(),
         ),
       ],
@@ -48,7 +57,7 @@ class CouchkitApp extends StatelessWidget {
         title: 'Couchkit',
         theme: buildTheme(Brightness.light),
         darkTheme: buildTheme(Brightness.dark),
-        initialRoute: HomePage.route,
+        initialRoute: ShellPage.route,
         onGenerateRoute: router.onGenerateRoute,
       ),
     );

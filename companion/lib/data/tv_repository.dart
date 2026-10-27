@@ -120,6 +120,65 @@ class TvRepository {
     return endpoint;
   }
 
+  /// Procura, no mesmo host, os outros apps da TV que aceitam este token.
+  /// Os apps compartilham o token do StickHub, entao um pareamento basta.
+  /// [ranges] existe para os testes usarem portas menores.
+  Future<List<TvEndpoint>> discover(
+    String host,
+    String token, {
+    Map<AppKind, (int, int)>? ranges,
+  }) async {
+    final probes = <Future<TvEndpoint?>>[];
+    for (final kind in AppKind.values) {
+      final (start, end) = ranges?[kind] ?? (kind.portStart, kind.portEnd);
+      for (var port = start; port <= end; port++) {
+        probes.add(_probeWithToken(host, port, kind, token));
+      }
+    }
+    final found = <TvEndpoint>[];
+    for (final endpoint in await Future.wait(probes)) {
+      if (endpoint != null) {
+        await save(endpoint);
+        found.add(endpoint);
+      }
+    }
+    _logger.info('apps descobertos', {'host': host, 'count': found.length});
+    return found;
+  }
+
+  Future<TvEndpoint?> _probeWithToken(
+    String host,
+    int port,
+    AppKind kind,
+    String token,
+  ) async {
+    if (await identify(host, port) != kind) {
+      return null;
+    }
+    final endpoint = TvEndpoint(
+      kind: kind,
+      host: host,
+      port: port,
+      token: token,
+    );
+    return await _acceptsToken(endpoint) ? endpoint : null;
+  }
+
+  /// O app responde 403 a token errado e qualquer outra coisa a token certo.
+  Future<bool> _acceptsToken(TvEndpoint endpoint) async {
+    try {
+      final response = await _dio.getUri<String>(
+        endpoint.baseUri.replace(
+          path: '/api/ping',
+          queryParameters: {'k': endpoint.token},
+        ),
+      );
+      return response.statusCode != null && response.statusCode != 403;
+    } on DioException {
+      return false;
+    }
+  }
+
   Future<bool> isOnline(TvEndpoint endpoint) async {
     final kind = await identify(endpoint.host, endpoint.port);
     return kind == endpoint.kind;

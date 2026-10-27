@@ -1,5 +1,6 @@
 package com.lucas.homecam;
 
+import com.lucas.common.Pair;
 import android.content.Context;
 import android.content.SharedPreferences;
 
@@ -24,8 +25,7 @@ final class Cam {
         if (server != null) return;
         app = ctx.getApplicationContext();
         prefs = app.getSharedPreferences("cam", Context.MODE_PRIVATE);
-        token = prefs.getString("token", null);
-        if (token == null) { token = UUID.randomUUID().toString().substring(0, 8); prefs.edit().putString("token", token).apply(); }
+        token = Pair.init(app, prefs);
         CamServer s = new CamServer(new CamServer.Handler() {
             public CamServer.Resp handle(String m, String path, Map<String, String> q, long len, InputStream body) throws Exception { return route(m, path, q); }
         });
@@ -69,7 +69,7 @@ final class Cam {
     static CamServer.Resp route(String method, String path, Map<String, String> q) throws Exception {
         if (path.equals("/")) return CamServer.Resp.html(asset("cam.html"));
         if (!path.startsWith("/api/")) return CamServer.Resp.text(404, "text/plain", "nao encontrado");
-        if (!token.equals(q.get("k"))) return CamServer.Resp.text(403, "application/json", "{\"ok\":false,\"error\":\"token\"}");
+        if (!Pair.token().equals(q.get("k"))) return CamServer.Resp.text(403, "application/json", "{\"ok\":false,\"error\":\"token\"}");
         if (path.equals("/api/set")) {
             String u = q.get("u") == null ? "" : q.get("u").trim();
             if (!u.isEmpty() && !u.matches("(?i)https?://.+")) u = "http://" + u;

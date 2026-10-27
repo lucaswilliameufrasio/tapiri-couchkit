@@ -1,5 +1,6 @@
 package com.lucas.phonecast;
 
+import com.lucas.common.Pair;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -25,8 +26,7 @@ final class Cast {
         if (server != null) return;
         app = ctx.getApplicationContext();
         SharedPreferences p = app.getSharedPreferences("cast", Context.MODE_PRIVATE);
-        token = p.getString("token", null);
-        if (token == null) { token = UUID.randomUUID().toString().substring(0, 8); p.edit().putString("token", token).apply(); }
+        token = Pair.init(app, p);
         CastServer s = new CastServer(new CastServer.Handler() {
             public CastServer.Resp handle(String m, String path, Map<String, String> q, long len, InputStream body) throws Exception { return route(m, path, q, len, body); }
         });
@@ -71,7 +71,7 @@ final class Cast {
     static CastServer.Resp route(String method, String path, Map<String, String> q, long len, InputStream body) throws Exception {
         if (path.equals("/")) return CastServer.Resp.html(asset("cast.html"));
         if (!path.startsWith("/api/")) return CastServer.Resp.text(404, "text/plain", "nao encontrado");
-        if (!token.equals(q.get("k"))) return CastServer.Resp.text(403, "application/json", "{\"ok\":false,\"error\":\"token\"}");
+        if (!Pair.token().equals(q.get("k"))) return CastServer.Resp.text(403, "application/json", "{\"ok\":false,\"error\":\"token\"}");
 
         if (path.equals("/api/state")) {
             PlayerActivity p = PlayerActivity.cur;

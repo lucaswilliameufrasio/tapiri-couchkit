@@ -1,5 +1,6 @@
 package com.lucas.stickhub;
 
+import com.lucas.common.Pair;
 import android.app.ActivityManager;
 import android.app.PendingIntent;
 import android.content.Context;
@@ -38,8 +39,7 @@ final class Hub {
         if (server != null) return;
         app = ctx.getApplicationContext();
         SharedPreferences p = app.getSharedPreferences("hub", Context.MODE_PRIVATE);
-        token = p.getString("token", null);
-        if (token == null) { token = UUID.randomUUID().toString().substring(0, 8); p.edit().putString("token", token).apply(); }
+        token = Pair.init(app, p);
         HubServer s = new HubServer(new HubServer.Handler() {
             public HubServer.Resp handle(String m, String path, Map<String, String> q, long len, InputStream body) throws Exception { return route(m, path, q, len, body); }
         });
@@ -63,7 +63,7 @@ final class Hub {
     // ---------- Rotas ----------
     private static HubServer.Resp route(String method, String path, Map<String, String> q, long len, InputStream body) throws Exception {
         if (path.equals("/")) return HubServer.Resp.html(asset("hub.html"));
-        if (!path.startsWith("/api/") || !token.equals(q.get("k"))) return HubServer.Resp.text(403, "text/plain", "forbidden");
+        if (!path.startsWith("/api/") || !Pair.token().equals(q.get("k"))) return HubServer.Resp.text(403, "text/plain", "forbidden");
         String cmd = path.substring(5), pkg = q.get("pkg");
         if (cmd.equals("info")) return HubServer.Resp.json(info());
         if (cmd.equals("apps")) return HubServer.Resp.json(apps());
