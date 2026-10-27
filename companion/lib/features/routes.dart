@@ -5,6 +5,7 @@ import 'package:couchkit_remote/core/navigation/router.dart';
 import 'package:couchkit_remote/data/models/panel.dart';
 import 'package:couchkit_remote/data/models/tv_endpoint.dart';
 import 'package:couchkit_remote/data/services/hub_service.dart';
+import 'package:couchkit_remote/data/tv_adb.dart';
 import 'package:couchkit_remote/data/tv_service_factory.dart';
 import 'package:couchkit_remote/features/add/add_page.dart';
 import 'package:couchkit_remote/features/cam/cam_page.dart';
@@ -36,7 +37,7 @@ class AppRoutes implements RouteModule {
     router.register(
       TunePage.route,
       (context, args) => _endpointPage(args, (e) {
-        return TunePage(service: _services.hub(e));
+        return TunePage(adb: _injector.get<TvAdb>(), host: e.host);
       }),
     );
     router.register(AddPage.route, (context, args) => const AddPage());

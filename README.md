@@ -65,10 +65,15 @@ MENU no controle (ou o tile "Personalizar") mostra um QR code com o endereço e 
 ## Ícone sumido no launcher oficial (Fire OS)
 Apps instalados fora da loja perdem o ícone na grade "Seus aplicativos e jogos" quando são **atualizados** com `adb install -r` (o log mostra `AmazonAppstore.SideloadedAppManagerService: cannot update entry for package`). Desinstalar com `pm uninstall -k` (mantém os dados) e instalar de novo recria o registro e o ícone volta. Use `firetv/install-app.sh`. Atualizações feitas pelo StickHub (PackageInstaller) têm o mesmo limite.
 
-## Otimizar pelo celular (ADB local)
+## Otimizar pelo celular (ADB)
 
-O StickHub tem um cliente ADB que fala com o adbd da própria TV (`127.0.0.1:5555`), então o
-Couchkit aplica os ajustes de `firetv/` sem PC (Início → Otimizar a TV). Exige a Depuração ADB
-ligada e **uma** autorização na TV (marque "Sempre permitir"). A chave RSA fica só no StickHub.
+O Couchkit fala ADB direto com a TV (`IP:5555`), como o PC faria, então aplica os ajustes de
+`firetv/` sem PC (Início → Otimizar a TV): animações, debloat, privacidade, limpar cache e
+compilar. Exige a Depuração ADB ligada e **uma** autorização na TV para a chave do celular
+(marque "Sempre permitir"; a janela só aparece enquanto o app espera). A chave RSA fica no
+armazenamento seguro do celular.
+
+O adbd da Fire OS aceita um cliente por vez e recusa conexões que partem da própria TV, por isso
+o cliente é o celular. Com o ADB do PC conectado, rode `adb disconnect` antes.
 `tools/fake_adbd.py` é um adbd falso que confere a assinatura e o formato da chave, para testar
 o cliente sem aparelho.

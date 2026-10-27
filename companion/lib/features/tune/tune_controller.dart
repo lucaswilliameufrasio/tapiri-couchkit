@@ -1,95 +1,90 @@
-import 'dart:async';
-
 import 'package:flutter/foundation.dart';
 
-import 'package:couchkit_remote/data/services/hub_service.dart';
+import 'package:couchkit_remote/core/errors/app_exception.dart';
+import 'package:couchkit_remote/data/adb/adb_connection.dart';
+import 'package:couchkit_remote/data/tune_profiles.dart';
+import 'package:couchkit_remote/data/tv_adb.dart';
 
-/// Perfis de otimizacao que o StickHub sabe aplicar pelo ADB local.
-class TuneProfile {
-  const TuneProfile({
-    required this.id,
-    required this.undoId,
-    required this.title,
-    required this.description,
-  });
+enum TuneState { idle, connecting, waiting, ready, running, failed }
 
-  final String id;
-  final String undoId;
-  final String title;
-  final String description;
-}
-
-const tuneProfiles = [
-  TuneProfile(
-    id: 'animacoes',
-    undoId: 'animacoes-off',
-    title: 'Animações rápidas',
-    description: 'Transições do sistema em 0,5x: a TV parece mais ágil.',
-  ),
-  TuneProfile(
-    id: 'debloat',
-    undoId: 'debloat-off',
-    title: 'Menos lixo da Amazon',
-    description:
-        'Desativa 21 apps de anúncios, métricas e serviços que você não usa. '
-        'Dá para desfazer.',
-  ),
-  TuneProfile(
-    id: 'privacidade',
-    undoId: 'privacidade-off',
-    title: 'Privacidade',
-    description: 'Limita anúncios personalizados e o envio de dados de uso.',
-  ),
-];
-
+/// Fala ADB direto do celular com a TV: cada acao abre a sessao, roda e
+/// fecha, para nao prender o adbd (que aceita um cliente por vez).
 class TuneController extends ChangeNotifier {
-  TuneController(this._service);
+  TuneController(this._adb, this.host);
 
-  final HubService _service;
+  final TvAdb _adb;
+  final String host;
 
-  TuneStatus status = const TuneStatus(adb: 'idle', tune: '');
+  TuneState state = TuneState.idle;
+  String? model;
   String? error;
-  Timer? _poll;
+  String? runningId;
+  int done = 0;
+  int total = 0;
+  String? lastDone;
 
-  Future<void> refresh() async {
-    try {
-      status = await _service.tuneStatus();
-      error = null;
-    } catch (e) {
-      error = '$e';
-    }
-    notifyListeners();
-  }
+  bool get busy =>
+      state == TuneState.connecting ||
+      state == TuneState.waiting ||
+      state == TuneState.running;
 
-  /// Conecta no ADB da TV e acompanha ate autorizar (ou falhar).
+  /// Confirma que a TV aceita o celular (1a vez: aprovar na TV).
   Future<void> connect() async {
-    await _service.adbConnect();
-    _startPolling();
-    await refresh();
-  }
-
-  /// Roda um perfil e acompanha o progresso.
-  Future<bool> run(String profile) async {
-    final started = await _service.tune(profile);
-    _startPolling();
-    await refresh();
-    return started;
-  }
-
-  void _startPolling() {
-    _poll?.cancel();
-    _poll = Timer.periodic(const Duration(seconds: 2), (_) async {
-      await refresh();
-      final idle = !status.waiting && !status.running;
-      if (idle) {
-        _poll?.cancel();
-      }
+    await _session((connection) async {
+      model = (await connection.shell('getprop ro.product.model')).trim();
+      state = TuneState.ready;
     });
   }
 
-  @override
-  void dispose() {
-    _poll?.cancel();
-    super.dispose();
+  Future<void> run(TuneProfile profile, {bool undo = false}) async {
+    final commands = undo ? profile.undo : profile.apply;
+    await _session((connection) async {
+      state = TuneState.running;
+      runningId = profile.id;
+      done = 0;
+      total = commands.length;
+      notifyListeners();
+      for (final command in commands) {
+        await connection.shell(command);
+        done++;
+        notifyListeners();
+      }
+      lastDone = profile.id;
+      state = TuneState.ready;
+    });
+    runningId = null;
+    notifyListeners();
+  }
+
+  Future<void> _session(
+    Future<void> Function(AdbConnection connection) body,
+  ) async {
+    if (busy) {
+      return;
+    }
+    error = null;
+    state = TuneState.connecting;
+    lastDone = null;
+    notifyListeners();
+    AdbConnection? connection;
+    try {
+      connection = await _adb.open(
+        host,
+        onWaitingApproval: () {
+          state = TuneState.waiting;
+          notifyListeners();
+        },
+      );
+      await body(connection);
+    } on AdbException catch (e) {
+      error = e.message;
+      state = TuneState.failed;
+    } catch (e) {
+      error = '$e';
+      state = TuneState.failed;
+    } finally {
+      await connection?.close();
+    }
+    notifyListeners();
   }
 }
