@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:couchkit_remote/core/di/injector.dart';
 import 'package:couchkit_remote/core/navigation/router.dart';
+import 'package:couchkit_remote/data/backup/backup_service.dart';
 import 'package:couchkit_remote/data/models/panel.dart';
 import 'package:couchkit_remote/data/models/tv_endpoint.dart';
 import 'package:couchkit_remote/data/services/hub_service.dart';
@@ -9,6 +10,7 @@ import 'package:couchkit_remote/data/tv_adb.dart';
 import 'package:couchkit_remote/data/tv_installer.dart';
 import 'package:couchkit_remote/data/tv_service_factory.dart';
 import 'package:couchkit_remote/features/add/add_page.dart';
+import 'package:couchkit_remote/features/backup/backup_page.dart';
 import 'package:couchkit_remote/features/cam/cam_page.dart';
 import 'package:couchkit_remote/features/cast/cast_page.dart';
 import 'package:couchkit_remote/features/clock/clock_page.dart';
@@ -55,6 +57,10 @@ class AppRoutes implements RouteModule {
       (context, args) => args is (String, HubService?)
           ? RemotePage(adb: _injector.get<TvAdb>(), host: args.$1, hub: args.$2)
           : const Scaffold(body: Center(child: Text('TV ausente'))),
+    );
+    router.register(
+      BackupPage.route,
+      (context, args) => BackupPage(service: _injector.get<BackupService>()),
     );
     router.register(AddPage.route, (context, args) => const AddPage());
     router.register(

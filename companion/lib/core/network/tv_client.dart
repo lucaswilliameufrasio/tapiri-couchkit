@@ -58,6 +58,23 @@ class TvClient {
     return _decode(response.data);
   }
 
+  /// POST com corpo JSON (as rotas de configuracao que nao cabem na URL).
+  Future<Json> postJson(
+    String path,
+    Object body, [
+    Map<String, String?> query = const {},
+  ]) async {
+    final response = await _guard(
+      () => _dio.postUri<String>(
+        uri(path, query),
+        data: jsonEncode(body),
+        options: Options(contentType: 'application/json'),
+      ),
+    );
+    final decoded = _decode(response.data);
+    return decoded is Json ? decoded : {};
+  }
+
   Future<Json> upload(
     String path,
     Map<String, String?> query,

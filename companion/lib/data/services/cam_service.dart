@@ -1,36 +1,67 @@
+import 'package:couchkit_remote/core/errors/app_exception.dart';
 import 'package:couchkit_remote/core/network/tv_client.dart';
-
-class CamConfig {
-  const CamConfig({required this.url, required this.ok, required this.cams});
-
-  final String url;
-  final bool ok;
-  final List<String> cams;
-}
+import 'package:couchkit_remote/data/models/cam_config.dart';
 
 class CamService {
   CamService(this._client);
 
   final TvClient _client;
 
-  Future<CamConfig> get() async => _parse(await _client.getJson('/api/get'));
-
-  Future<CamConfig> setUrl(String url) async {
-    return _parse(await _client.getJson('/api/set', {'u': url}));
+  Future<CamSettings> config() async {
+    return CamSettings.fromJson(await _client.getJson('/api/cfg'));
   }
 
-  CamConfig _parse(Json json) {
-    final cams = <String>[];
+  /// Grava a configuracao inteira; devolve o que a TV normalizou e guardou.
+  Future<CamSettings> save(CamSettings settings) async {
+    return CamSettings.fromJson(
+      await _client.postJson('/api/cfg', settings.toJson()),
+    );
+  }
+
+  /// Cameras na ordem que a TV usa (inclui ocultas) e erros por servidor.
+  Future<CamListing> cams() async {
+    final json = await _client.getJson('/api/cams');
+    final cams = <CamEntry>[];
     final raw = json['cams'];
     if (raw is List) {
       for (final item in raw) {
-        cams.add('$item');
+        if (item is Map<String, dynamic>) {
+          cams.add(CamEntry.fromJson(item));
+        }
       }
     }
-    return CamConfig(
-      url: '${json['url'] ?? ''}',
-      ok: json['ok'] == true,
-      cams: cams,
+    final errors = <String, String>{};
+    final rawErrors = json['errors'];
+    if (rawErrors is List) {
+      for (final item in rawErrors) {
+        if (item is Map<String, dynamic>) {
+          errors['${item['server']}'] = '${item['error']}';
+        }
+      }
+    }
+    return CamListing(cams: cams, errors: errors);
+  }
+
+  /// Cadastra uma camera (RTSP, RTMP, ...) no go2rtc do servidor [server].
+  Future<void> addToServer(String server, String name, String src) async {
+    await _check(
+      await _client.postJson('/api/add', {
+        'server': server,
+        'name': name,
+        'src': src,
+      }),
     );
+  }
+
+  Future<void> removeFromServer(String server, String name) async {
+    await _check(
+      await _client.postJson('/api/remove', {'server': server, 'name': name}),
+    );
+  }
+
+  Future<void> _check(Json json) async {
+    if (json['ok'] != true) {
+      throw TvRequestException('${json['error'] ?? 'A TV recusou'}');
+    }
   }
 }

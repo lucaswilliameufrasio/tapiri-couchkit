@@ -26,11 +26,10 @@ import java.util.*;
 
 /** Grade de cameras do go2rtc (snapshots) + tela cheia (HLS, com modo compativel por snapshots). MENU abre o QR de configuracao. */
 public class MainActivity extends Activity {
-    private static final int COLS = 3;
     private final Handler ui = new Handler(Looper.getMainLooper());
     private float dp; private FrameLayout root; private LinearLayout page, gridHost, qrBox; private TextView status;
-    private final List<String> cams = new ArrayList<String>(); private final Map<String, ImageView> thumbs = new HashMap<String, ImageView>();
-    private volatile boolean running; private Thread worker;
+    private final List<Cam.Cell> cells = new ArrayList<Cam.Cell>(); private final Map<String, ImageView> thumbs = new HashMap<String, ImageView>();
+    private volatile boolean running; private Thread worker; private int cols = 3;
     // tela cheia
     private FrameLayout full; private SurfaceView video; private androidx.media3.exoplayer.ExoPlayer player; private ImageView fullImg; private TextView fullLabel; private int cur = -1; private boolean compat; private volatile int fullGen;
 
@@ -75,22 +74,32 @@ public class MainActivity extends Activity {
     @Override protected void onResume() { super.onResume(); running = true; worker = new Thread(new Runnable() { public void run() { loop(); } }); worker.start(); }
     @Override protected void onPause() { super.onPause(); running = false; closeFull(); }
 
-    /** Thread de fundo: atualiza lista de cameras a cada ~20 s e snapshots a cada ~2 s. */
+    /** Thread de fundo: atualiza a lista de cameras a cada ~20 s e os snapshots a cada ~2 s. */
     private void loop() {
         long lastList = 0;
         while (running) {
             try {
                 if (System.currentTimeMillis() - lastList > 20000) {
                     lastList = System.currentTimeMillis();
-                    if (Cam.g2r().isEmpty()) post(Collections.<String>emptyList(), "Sem endereço do go2rtc. Aperte MENU e configure pelo celular.");
-                    else try { post(Cam.streams(), null); } catch (Exception e) { post(Collections.<String>emptyList(), "Não consegui falar com " + Cam.g2r()); lastList = System.currentTimeMillis() - 14000; }
+                    org.json.JSONObject c = Cam.cfg();
+                    int n = c.optInt("cols", 3);
+                    if (c.optJSONArray("servers").length() == 0 && c.optJSONArray("direct").length() == 0) post(Collections.<Cam.Cell>emptyList(), n, "Nenhuma câmera. Aperte MENU e configure pelo celular.");
+                    else {
+                        Map<String, String> errors = new LinkedHashMap<String, String>(); List<Cam.Cell> all = Cam.discover(errors), vis = new ArrayList<Cam.Cell>();
+                        for (Cam.Cell x : all) if (!x.hidden) vis.add(x);
+                        StringBuilder st = new StringBuilder(vis.size() + " câmeras");
+                        for (Map.Entry<String, String> e : errors.entrySet()) st.append(" · ").append(e.getKey()).append(": ").append(e.getValue());
+                        post(vis, n, st.toString());
+                        if (!errors.isEmpty()) lastList = System.currentTimeMillis() - 14000;
+                    }
                 }
-                List<String> snap; synchronized (cams) { snap = new ArrayList<String>(cams); }
+                List<Cam.Cell> snap; synchronized (cells) { snap = new ArrayList<Cam.Cell>(cells); }
                 if (fullGen > 0 && compat) { Thread.sleep(200); continue; }
-                for (final String c : snap) {
+                for (final Cam.Cell c : snap) {
                     if (!running) break;
-                    try { byte[] d = Cam.fetch(Cam.g2r() + "/api/frame.jpeg?src=" + Uri.encode(c), 4000); final Bitmap bm = decode(d, 2);
-                        ui.post(new Runnable() { public void run() { ImageView iv = thumbs.get(c); if (iv != null && bm != null) iv.setImageBitmap(bm); } });
+                    if (c.srv == null) continue;
+                    try { byte[] d = Cam.get(c.srv, "/api/frame.jpeg?src=" + Uri.encode(c.stream), 4000); final Bitmap bm = decode(d, cols > 3 ? 4 : 2);
+                        ui.post(new Runnable() { public void run() { ImageView iv = thumbs.get(c.key); if (iv != null && bm != null) iv.setImageBitmap(bm); } });
                     } catch (Exception ignored) { }
                 }
                 Thread.sleep(1500);
@@ -100,52 +109,61 @@ public class MainActivity extends Activity {
 
     private static Bitmap decode(byte[] d, int sample) { BitmapFactory.Options o = new BitmapFactory.Options(); o.inSampleSize = sample; return BitmapFactory.decodeByteArray(d, 0, d.length, o); }
 
-    private void post(final List<String> l, final String msg) {
+    private void post(final List<Cam.Cell> l, final int n, final String msg) {
         ui.post(new Runnable() { public void run() {
-            status.setText(msg != null ? msg : l.size() + " câmeras · " + Cam.g2r());
-            synchronized (cams) { if (cams.equals(l)) return; cams.clear(); cams.addAll(l); }
+            status.setText(msg);
+            boolean same = n == cols && l.size() == cells.size();
+            for (int i = 0; same && i < l.size(); i++) same = l.get(i).key.equals(cells.get(i).key) && l.get(i).name.equals(cells.get(i).name);
+            if (same) return;
+            cols = n; synchronized (cells) { cells.clear(); cells.addAll(l); }
             rebuild();
         } });
     }
 
     private void rebuild() {
         gridHost.removeAllViews(); thumbs.clear(); LinearLayout row = null; boolean first = true;
-        for (int i = 0; i < cams.size(); i++) {
-            if (i % COLS == 0) { row = new LinearLayout(this); gridHost.addView(row, new LinearLayout.LayoutParams(-1, -2)); }
+        for (int i = 0; i < cells.size(); i++) {
+            if (i % cols == 0) { row = new LinearLayout(this); gridHost.addView(row, new LinearLayout.LayoutParams(-1, -2)); }
             row.addView(card(i), new LinearLayout.LayoutParams(0, -2, 1));
         }
-        if (!cams.isEmpty() && gridHost.getChildCount() > 0) { View c = ((LinearLayout) gridHost.getChildAt(0)).getChildAt(0); c.requestFocus(); }
+        // completa a ultima linha para os cards nao esticarem
+        if (row != null) for (int k = cells.size() % cols; k != 0 && k < cols; k++) row.addView(new View(this), new LinearLayout.LayoutParams(0, 1, 1));
+        if (!cells.isEmpty() && gridHost.getChildCount() > 0) { View c = ((LinearLayout) gridHost.getChildAt(0)).getChildAt(0); c.requestFocus(); }
     }
 
     private View card(final int idx) {
-        final String name = cams.get(idx);
+        final Cam.Cell cell = cells.get(idx); final String name = cell.name;
         LinearLayout c = new LinearLayout(this); c.setOrientation(LinearLayout.VERTICAL); c.setFocusable(true); c.setPadding(px(8), px(8), px(8), px(8));
         final GradientDrawable ring = new GradientDrawable(); ring.setCornerRadius(px(14)); ring.setStroke(px(3), Color.TRANSPARENT); c.setBackground(ring);
         ImageView iv = new ImageView(this); iv.setScaleType(ImageView.ScaleType.CENTER_CROP); iv.setBackgroundColor(0xFF1b2b30);
-        c.addView(iv, new LinearLayout.LayoutParams(-1, px(190)));
-        TextView t = tv(18, Color.WHITE, true); t.setText(name); t.setPadding(px(4), px(6), 0, px(2)); c.addView(t);
-        thumbs.put(name, iv);
+        c.addView(iv, new LinearLayout.LayoutParams(-1, px(cols > 3 ? 140 : cols == 2 ? 240 : 190)));
+        if (cell.srv == null) { TextView ph = tv(30, 0x66FFFFFF, true); ph.setText("RTSP"); ph.setGravity(Gravity.CENTER); c.removeView(iv); FrameLayout box = new FrameLayout(this); box.setBackgroundColor(0xFF1b2b30); box.addView(ph, new FrameLayout.LayoutParams(-1, -1)); c.addView(box, new LinearLayout.LayoutParams(-1, px(cols > 3 ? 140 : cols == 2 ? 240 : 190))); }
+        TextView t = tv(18, Color.WHITE, true); t.setText(name); t.setSingleLine(true); t.setPadding(px(4), px(6), 0, px(2)); c.addView(t);
+        thumbs.put(cell.key, iv);
         c.setOnFocusChangeListener(new View.OnFocusChangeListener() { public void onFocusChange(View v, boolean f) { ring.setStroke(px(3), f ? 0xFFFFB27A : Color.TRANSPARENT); } });
         c.setOnClickListener(new View.OnClickListener() { public void onClick(View v) { openFull(idx); } });
         return c;
     }
 
     private void openFull(int idx) {
-        if (cams.isEmpty()) return;
-        cur = (idx + cams.size()) % cams.size(); compat = false; fullGen++; final int gen = fullGen;
-        full.setVisibility(View.VISIBLE); fullLabel.setText(cams.get(cur) + "   ·   ◀ ▶ trocar · OK modo compatível");
-        playHls(cams.get(cur));
+        if (cells.isEmpty()) return;
+        cur = (idx + cells.size()) % cells.size(); compat = false; fullGen++; final int gen = fullGen;
+        full.setVisibility(View.VISIBLE); fullLabel.setText(cells.get(cur).name + "   ·   ◀ ▶ trocar" + (cells.get(cur).srv != null ? " · OK modo compatível" : ""));
+        playHls(cells.get(cur));
     }
 
     private boolean playing() { return player != null && player.getPlaybackState() == androidx.media3.common.Player.STATE_READY && player.getPlayWhenReady(); }
     private void stopVideo() { if (player != null) { try { player.release(); } catch (Exception ignored) { } player = null; } }
 
-    private void playHls(String name) {
+    private void playHls(Cam.Cell cell) {
         fullImg.setVisibility(View.GONE); video.setVisibility(View.VISIBLE); stopVideo();
-        player = new androidx.media3.exoplayer.ExoPlayer.Builder(this).build();
+        androidx.media3.datasource.DefaultHttpDataSource.Factory http = new androidx.media3.datasource.DefaultHttpDataSource.Factory();
+        if (cell.srv != null && cell.srv.auth != null) { Map<String, String> h = new HashMap<String, String>(); h.put("Authorization", cell.srv.auth); http.setDefaultRequestProperties(h); }
+        player = new androidx.media3.exoplayer.ExoPlayer.Builder(this).setMediaSourceFactory(new androidx.media3.exoplayer.source.DefaultMediaSourceFactory(http)).build();
         player.setVideoSurfaceView(video);
         player.addListener(new androidx.media3.common.Player.Listener() { public void onPlayerError(androidx.media3.common.PlaybackException e) { if (!compat && full.getVisibility() == View.VISIBLE) startCompat(); } });
-        player.setMediaItem(androidx.media3.common.MediaItem.fromUri(Uri.parse(Cam.g2r() + "/api/stream.m3u8?src=" + Uri.encode(name))));
+        String u = cell.srv != null ? cell.srv.url + "/api/stream.m3u8?src=" + Uri.encode(cell.stream) : cell.direct;
+        player.setMediaItem(androidx.media3.common.MediaItem.fromUri(Uri.parse(u)));
         player.setPlayWhenReady(true); player.prepare();
         final int gen = fullGen; // se o video nao comecar em 8 s, cai para o modo compativel
         ui.postDelayed(new Runnable() { public void run() { if (fullGen == gen && !compat && full.getVisibility() == View.VISIBLE && !playing()) startCompat(); } }, 8000);
@@ -153,12 +171,14 @@ public class MainActivity extends Activity {
 
     /** Modo compativel: snapshots em ~5 fps (sem codec de video). */
     private void startCompat() {
-        compat = true; final int gen = ++fullGen; final String name = cams.get(cur);
+        final Cam.Cell cell = cells.get(cur); final String name = cell.name;
+        if (cell.srv == null) { stopVideo(); video.setVisibility(View.GONE); fullImg.setVisibility(View.GONE); fullLabel.setText(name + "   ·   não consegui abrir o RTSP (RTMP e outras fontes: use um go2rtc)"); return; }
+        compat = true; final int gen = ++fullGen;
         stopVideo(); video.setVisibility(View.GONE); fullImg.setVisibility(View.VISIBLE);
         fullLabel.setText(name + "   ·   modo compatível · OK volta ao vídeo");
         new Thread(new Runnable() { public void run() {
             while (running && fullGen == gen && compat) {
-                try { byte[] d = Cam.fetch(Cam.g2r() + "/api/frame.jpeg?src=" + Uri.encode(name), 4000); final Bitmap bm = decode(d, 1);
+                try { byte[] d = Cam.get(cell.srv, "/api/frame.jpeg?src=" + Uri.encode(cell.stream), 4000); final Bitmap bm = decode(d, 1);
                     ui.post(new Runnable() { public void run() { if (fullGen == gen && bm != null) fullImg.setImageBitmap(bm); } }); Thread.sleep(150);
                 } catch (Exception e) { try { Thread.sleep(500); } catch (InterruptedException ie) { return; } }
             }
@@ -180,7 +200,8 @@ public class MainActivity extends Activity {
             if (k == KeyEvent.KEYCODE_DPAD_RIGHT) { openFull(cur + 1); return true; }
             if (k == KeyEvent.KEYCODE_DPAD_LEFT) { openFull(cur - 1); return true; }
             if (k == KeyEvent.KEYCODE_DPAD_CENTER || k == KeyEvent.KEYCODE_ENTER) {
-                if (compat) { compat = false; fullGen++; fullLabel.setText(cams.get(cur) + "   ·   ◀ ▶ trocar · OK modo compatível"); playHls(cams.get(cur)); } else startCompat();
+                if (cells.get(cur).srv == null) return true;
+                if (compat) { compat = false; fullGen++; fullLabel.setText(cells.get(cur).name + "   ·   ◀ ▶ trocar · OK modo compatível"); playHls(cells.get(cur)); } else startCompat();
                 return true;
             }
             return true;

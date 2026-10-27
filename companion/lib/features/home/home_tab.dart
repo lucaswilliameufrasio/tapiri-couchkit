@@ -169,6 +169,10 @@ class _HomeTabState extends State<HomeTab> {
                       args: controller.currentHost,
                     ),
                   ),
+                  const SizedBox(height: 10),
+                  _BackupCard(
+                    onTap: () => router.push<void>(context, '/backup'),
+                  ),
                   const SectionTitle('Apps do couchkit'),
                   _AppGrid(controller: controller, router: router),
                 ],
@@ -395,6 +399,32 @@ class _RemoteCard extends StatelessWidget {
         ),
         title: const Text('Controle remoto'),
         subtitle: const Text('Setas, voltar, início, mídia e volume'),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: onTap,
+      ),
+    );
+  }
+}
+
+class _BackupCard extends StatelessWidget {
+  const _BackupCard({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        leading: IconBadge(
+          icon: Icons.lock_outline,
+          color: scheme.tertiary,
+          size: 44,
+        ),
+        title: const Text('Backup e restauração'),
+        subtitle: const Text('Arquivo criptografado com a sua senha'),
         trailing: const Icon(Icons.chevron_right),
         onTap: onTap,
       ),

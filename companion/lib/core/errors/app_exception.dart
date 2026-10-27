@@ -33,3 +33,7 @@ class InvalidConnectionUrlException extends AppException {
 class AdbException extends AppException {
   const AdbException(super.message);
 }
+
+class BackupException extends AppException {
+  const BackupException(super.message);
+}
