@@ -19,6 +19,7 @@ import os
 import plistlib
 import secrets
 import shutil
+import signal
 import socketserver
 import ssl
 import subprocess
@@ -44,11 +45,27 @@ TYPES = {
 def run(cmd, cwd=None, quiet=False):
     if not quiet:
         print("$", " ".join(str(c) for c in cmd))
-    result = subprocess.run(
-        cmd, cwd=cwd, stdout=subprocess.DEVNULL if quiet else None, stderr=subprocess.DEVNULL if quiet else None, check=False
+    out = subprocess.DEVNULL if quiet else None
+    # sem daemon do Gradle: ele sobrevive ao build e segura o terminal aberto
+    env = {**os.environ, "GRADLE_OPTS": (os.environ.get("GRADLE_OPTS", "") + " -Dorg.gradle.daemon=false").strip()}
+    proc = subprocess.Popen(
+        cmd, cwd=cwd, env=env, stdin=subprocess.DEVNULL, stdout=out, stderr=out, start_new_session=True
     )
-    if result.returncode != 0:
-        sys.exit(f"falhou: {cmd[0]} (código {result.returncode})")
+    try:
+        code = proc.wait()
+    except KeyboardInterrupt:
+        # o filho roda em outra sessão: mata o grupo inteiro (flutter, gradle, dart)
+        try:
+            os.killpg(proc.pid, signal.SIGTERM)
+            proc.wait(timeout=5)
+        except (ProcessLookupError, subprocess.TimeoutExpired):
+            try:
+                os.killpg(proc.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+        os._exit(130)
+    if code != 0:
+        sys.exit(f"falhou: {cmd[0]} (código {code})")
 
 
 def flutter_cmd():
@@ -178,7 +195,10 @@ class Handler(http.server.BaseHTTPRequestHandler):
     https_port = None
 
     def log_message(self, fmt, *args):
-        print(f"  {self.client_address[0]} {self.command} {urllib.parse.urlparse(self.path).path} -> {args[1] if len(args) > 1 else ''}")
+        # requisições malformadas (ex.: TLS na porta HTTP) chegam sem command/path
+        method = getattr(self, "command", None) or "?"
+        path = urllib.parse.urlparse(getattr(self, "path", "") or "").path or "?"
+        print(f"  {self.client_address[0]} {method} {path} -> {args[1] if len(args) > 1 else ''}")
 
     def send_bytes(self, status, body, ctype, name=None):
         self.send_response(status)
@@ -321,10 +341,13 @@ def main():
             print(f"  iPhone (https): {https_url}")
             show_qr(https_url)
     print("\nCtrl+C para parar. Requisições:")
-    try:
-        threading.Event().wait()
-    except KeyboardInterrupt:
-        print("\nencerrado")
+    stop = threading.Event()
+    signal.signal(signal.SIGINT, lambda *_: stop.set())
+    signal.signal(signal.SIGTERM, lambda *_: stop.set())
+    while not stop.wait(0.5):
+        pass
+    print("\nencerrado")
+    os._exit(0)
 
 
 if __name__ == "__main__":
