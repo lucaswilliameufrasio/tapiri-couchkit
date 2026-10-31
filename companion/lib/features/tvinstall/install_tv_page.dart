@@ -1,16 +1,25 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import 'package:couchkit_remote/core/ui/widgets.dart';
 import 'package:couchkit_remote/data/tv_installer.dart';
+import 'package:couchkit_remote/features/home/home_controller.dart';
+import 'package:couchkit_remote/data/tv_repository.dart';
 import 'package:couchkit_remote/features/tvinstall/install_tv_controller.dart';
 
 /// Instala os apps da TV direto do celular (ADB), sem PC nem Downloader.
 class InstallTvPage extends StatefulWidget {
-  const InstallTvPage({required this.installer, this.host, super.key});
+  const InstallTvPage({
+    required this.installer,
+    required this.repository,
+    this.host,
+    super.key,
+  });
 
   static const route = '/install-tv';
 
   final TvInstaller installer;
+  final TvRepository repository;
   final String? host;
 
   @override
@@ -20,6 +29,7 @@ class InstallTvPage extends StatefulWidget {
 class _InstallTvPageState extends State<InstallTvPage> {
   late final InstallTvController _controller = InstallTvController(
     widget.installer,
+    widget.repository,
   )..addListener(_changed);
   late final TextEditingController _host = TextEditingController(
     text: widget.host ?? '',
@@ -31,9 +41,16 @@ class _InstallTvPageState extends State<InstallTvPage> {
     _controller.load();
   }
 
+  bool _reloaded = false;
+
   void _changed() {
-    if (mounted) {
-      setState(() {});
+    if (!mounted) {
+      return;
+    }
+    setState(() {});
+    if (_controller.paired && !_reloaded) {
+      _reloaded = true;
+      context.read<HomeController>().load();
     }
   }
 
@@ -51,13 +68,14 @@ class _InstallTvPageState extends State<InstallTvPage> {
     final controller = _controller;
     final scheme = Theme.of(context).colorScheme;
     return Scaffold(
-      appBar: AppBar(title: const Text('Instalar apps da TV')),
+      appBar: AppBar(title: const Text('Configurar a TV pelo celular')),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
         children: [
           Text(
             'Na TV: Configurações → Meu Fire TV → Opções do desenvolvedor → '
-            'Depuração ADB (ligada). O celular precisa estar na mesma rede.',
+            'Depuração ADB (ligada). É o único passo manual: o Couchkit instala '
+            'os apps e cadastra a TV sozinho, sem QR. Celular e TV na mesma rede.',
             style: TextStyle(color: scheme.onSurfaceVariant),
           ),
           const SizedBox(height: 14),
@@ -97,7 +115,7 @@ class _InstallTvPageState extends State<InstallTvPage> {
           const SizedBox(height: 12),
           FilledButton.icon(
             icon: const Icon(Icons.download),
-            label: Text(controller.busy ? 'Instalando…' : 'Instalar'),
+            label: Text(controller.busy ? 'Configurando…' : 'Configurar a TV'),
             onPressed: controller.busy || controller.selected.isEmpty
                 ? null
                 : () => controller.install(_host.text),
@@ -176,12 +194,20 @@ class _StatusCard extends StatelessWidget {
         scheme.primary,
         'Conectando ao ADB da TV…',
       ),
-      InstallState.finished when controller.failures.isEmpty => (
-        Icons.check_circle,
-        Colors.green,
-        'Pronto. O StickHub abriu na TV: aperte MENU no controle para '
-            'mostrar o QR e escaneie na tela inicial do Couchkit.',
-      ),
+      InstallState.finished when controller.failures.isEmpty =>
+        controller.paired
+            ? (
+                Icons.check_circle,
+                Colors.green,
+                'Pronto. TV cadastrada no Couchkit com '
+                    '${controller.registered} app(s). Nenhum QR foi preciso.',
+              )
+            : (
+                Icons.warning_amber,
+                scheme.error,
+                'Os apps foram instalados, mas nenhum respondeu na rede. '
+                    'Confira se o celular está no mesmo Wi-Fi da TV.',
+              ),
       InstallState.finished => (
         Icons.warning_amber,
         scheme.error,

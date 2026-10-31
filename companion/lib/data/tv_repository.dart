@@ -174,6 +174,35 @@ class TvRepository {
     return endpoint;
   }
 
+  /// Token do StickHub ja pareado nesse host, se houver.
+  Future<String?> tokenOf(String host) async {
+    for (final endpoint in await load()) {
+      if (endpoint.host == host && endpoint.kind == AppKind.stickhub) {
+        return endpoint.token;
+      }
+    }
+    return null;
+  }
+
+  /// Cadastra uma TV configurada pelo ADB: espera os apps subirem e guarda
+  /// os que aceitam [token]. Devolve quantos achou (0 = nenhum respondeu).
+  Future<int> adopt(
+    String host,
+    String token, {
+    int attempts = 15,
+    Duration wait = const Duration(seconds: 2),
+    Map<AppKind, (int, int)>? ranges,
+  }) async {
+    for (var i = 0; i < attempts; i++) {
+      final found = await discover(host, token, ranges: ranges);
+      if (found.any((e) => e.kind == AppKind.stickhub)) {
+        return found.length;
+      }
+      await Future<void>.delayed(wait);
+    }
+    return 0;
+  }
+
   /// Procura, no mesmo host, os outros apps da TV que aceitam este token.
   /// Os apps compartilham o token do StickHub, entao um pareamento basta.
   /// [ranges] existe para os testes usarem portas menores.

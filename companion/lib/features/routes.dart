@@ -8,6 +8,7 @@ import 'package:couchkit_remote/data/models/tv_endpoint.dart';
 import 'package:couchkit_remote/data/services/hub_service.dart';
 import 'package:couchkit_remote/data/tv_adb.dart';
 import 'package:couchkit_remote/data/tv_installer.dart';
+import 'package:couchkit_remote/data/tv_repository.dart';
 import 'package:couchkit_remote/data/tv_service_factory.dart';
 import 'package:couchkit_remote/features/add/add_page.dart';
 import 'package:couchkit_remote/features/backup/backup_page.dart';
@@ -49,6 +50,7 @@ class AppRoutes implements RouteModule {
       InstallTvPage.route,
       (context, args) => InstallTvPage(
         installer: _injector.get<TvInstaller>(),
+        repository: _injector.get<TvRepository>(),
         host: args is String ? args : null,
       ),
     );

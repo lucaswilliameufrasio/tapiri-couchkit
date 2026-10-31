@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:provider/provider.dart';
 
+import 'package:couchkit_remote/core/di/injector.dart';
+import 'package:couchkit_remote/core/navigation/router.dart';
 import 'package:couchkit_remote/core/ui/describe_error.dart';
 import 'package:couchkit_remote/features/home/home_controller.dart';
 
@@ -65,7 +67,32 @@ class _AddPageState extends State<AddPage> {
           ),
         ],
       ),
-      body: _typing ? _manualForm() : _scanner(),
+      body: Column(
+        children: [
+          _adbCard(),
+          Expanded(child: _typing ? _manualForm() : _scanner()),
+        ],
+      ),
+    );
+  }
+
+  Widget _adbCard() {
+    return Card(
+      margin: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+      child: ListTile(
+        leading: const Icon(Icons.usb),
+        title: const Text('Configurar a TV pelo celular (ADB)'),
+        subtitle: const Text(
+          'Instala os apps e cadastra a TV sem QR. Só precisa ligar a '
+          'Depuração ADB.',
+        ),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: () {
+          final router = context.read<Injector>().get<RouterService>();
+          Navigator.of(context).pop();
+          router.push<void>(context, '/install-tv');
+        },
+      ),
     );
   }
 

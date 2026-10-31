@@ -92,4 +92,35 @@ void main() {
     expect(done, ['firehome']);
     expect(failures.keys, ['stickhub']);
   });
+
+  test('com token: abre o StickHub, envia o token e abre os outros', () async {
+    final apps = tvApps
+        .where((a) => a.id == 'stickhub' || a.id == 'homecam')
+        .toList();
+
+    final failures = await installer({'stickhub', 'homecam'}).install(
+      '127.0.0.1',
+      apps,
+      token: 'k7m2p9qx',
+      launchGap: Duration.zero,
+      onProgress: (app, step, {sent, detail}) {},
+    );
+
+    expect(failures, isEmpty);
+    await Future<void>.delayed(const Duration(milliseconds: 300));
+    final text = log.toString();
+    expect(
+      text,
+      contains(
+        'am broadcast --include-stopped-packages '
+        '-a com.lucas.stickhub.PROVISION '
+        '-n com.lucas.stickhub/.ProvisionReceiver --es token k7m2p9qx',
+      ),
+    );
+    expect(text, contains('am start -n com.lucas.homecam/.MainActivity'));
+    expect(
+      text.lastIndexOf('am start -n com.lucas.stickhub/.MainActivity'),
+      greaterThan(text.indexOf('am start -n com.lucas.homecam/.MainActivity')),
+    );
+  });
 }

@@ -39,6 +39,12 @@ public final class Pair {
         return token;
     }
 
+    /** Define o token (vindo do Couchkit por ADB) e o grava. */
+    public static synchronized void set(SharedPreferences p, String value) {
+        token = value;
+        p.edit().putString("token", value).apply();
+    }
+
     /** Token atual; reconsulta o StickHub de tempos em tempos. */
     public static String token() {
         if (System.currentTimeMillis() - checked > REFRESH_MS) refresh();

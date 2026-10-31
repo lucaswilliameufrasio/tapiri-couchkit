@@ -641,30 +641,26 @@ class _Onboarding extends StatelessWidget {
         const SizedBox(height: 28),
         step(
           1,
-          'Instale os apps na TV',
-          'Ligue a Depuração ADB na TV e instale tudo daqui, pela rede, sem '
-              'PC. Se o StickHub já estiver lá, pule este passo.',
+          'Ligue a Depuração ADB na TV',
+          'Configurações → Meu Fire TV (ou Sistema) → Opções do '
+              'desenvolvedor. É o único passo feito na TV.',
         ),
         step(
           2,
-          'Mostre o QR code',
-          'Abra o StickHub e aperte MENU no controle.',
-        ),
-        step(
-          3,
-          'Escaneie aqui',
-          'Um QR basta: os outros apps da TV são encontrados sozinhos.',
+          'Informe o IP da TV aqui',
+          'O Couchkit instala os apps e cadastra a TV sozinho. Na TV, '
+              'aprove "Sempre permitir" uma vez.',
         ),
         const SizedBox(height: 12),
-        OutlinedButton.icon(
-          icon: const Icon(Icons.download),
-          label: const Text('Instalar apps na TV'),
+        FilledButton.icon(
+          icon: const Icon(Icons.usb),
+          label: const Text('Configurar a TV pelo celular'),
           onPressed: onInstall,
         ),
         const SizedBox(height: 10),
-        FilledButton.icon(
+        TextButton.icon(
           icon: const Icon(Icons.qr_code_scanner),
-          label: const Text('Escanear QR code'),
+          label: const Text('Já tenho o StickHub: escanear QR'),
           onPressed: onScan,
         ),
       ],

@@ -65,6 +65,8 @@ class TvInstaller {
     required InstallProgress onProgress,
     void Function()? onWaitingApproval,
     bool openFirst = false,
+    String? token,
+    Duration launchGap = const Duration(milliseconds: 1500),
   }) async {
     final failures = <String, String>{};
     final connection = await _adb.open(
@@ -81,13 +83,46 @@ class TvInstaller {
           onProgress(app, InstallStep.failed, detail: e.message);
         }
       }
-      if (openFirst && apps.any((app) => app.id == 'stickhub')) {
+      if (token != null) {
+        await _provision(connection, token, apps, launchGap);
+      } else if (openFirst && apps.any((app) => app.id == 'stickhub')) {
         await connection.shell('am start -n com.lucas.stickhub/.MainActivity');
       }
     } finally {
       await connection.close();
     }
     return failures;
+  }
+
+  /// Define o token do StickHub (so o shell do ADB pode, permissao DUMP) e
+  /// abre cada app uma vez para o servidor dele subir. O StickHub fica por
+  /// ultimo, na frente, mostrando o QR.
+  Future<void> _provision(
+    AdbConnection connection,
+    String token,
+    List<TvApp> apps,
+    Duration gap,
+  ) async {
+    const hub = 'com.lucas.stickhub';
+    await connection.shell('am start -n $hub/.MainActivity');
+    await Future<void>.delayed(gap);
+    final result = await connection.shell(
+      'am broadcast --include-stopped-packages '
+      '-a $hub.PROVISION -n $hub/.ProvisionReceiver --es token $token',
+    );
+    if (!result.contains('Broadcast completed')) {
+      throw AdbException(
+        'O StickHub não aceitou o token: ${result.split('\n').first}',
+      );
+    }
+    for (final app in apps) {
+      if (app.id == 'stickhub') {
+        continue;
+      }
+      await connection.shell('am start -n ${app.pkg}/.MainActivity');
+      await Future<void>.delayed(gap);
+    }
+    await connection.shell('am start -n $hub/.MainActivity');
   }
 
   Future<void> _installOne(

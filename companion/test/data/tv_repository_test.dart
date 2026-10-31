@@ -155,5 +155,38 @@ void main() {
         expect((await repository.load()).length, 2);
       },
     );
+
+    test('adopt cadastra a TV quando o StickHub responde', () async {
+      await fixed('StickHub', 48111);
+      await fixed('HomeCam', 48112);
+      final ranges = {
+        AppKind.stickhub: (48111, 48111),
+        AppKind.homecam: (48112, 48112),
+      };
+
+      final count = await repository.adopt(
+        '127.0.0.1',
+        'a1b2c3d4',
+        attempts: 2,
+        wait: const Duration(milliseconds: 10),
+        ranges: ranges,
+      );
+
+      expect(count, 2);
+      expect(await repository.tokenOf('127.0.0.1'), 'a1b2c3d4');
+    });
+
+    test('adopt devolve 0 se nenhum app responder', () async {
+      final count = await repository.adopt(
+        '127.0.0.1',
+        'a1b2c3d4',
+        attempts: 2,
+        wait: const Duration(milliseconds: 10),
+        ranges: {AppKind.stickhub: (48121, 48121)},
+      );
+
+      expect(count, 0);
+      expect(await repository.tokenOf('127.0.0.1'), isNull);
+    });
   });
 }

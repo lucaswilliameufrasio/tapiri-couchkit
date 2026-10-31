@@ -134,6 +134,8 @@ def reply(service):
         return "package:" + service.split()[-1] + "\n"
     if service.startswith("shell:pm install"):
         return "Success\n"
+    if service.startswith("shell:am broadcast"):
+        return "Broadcasting: Intent\nBroadcast completed: result=0\n"
     return f"fake:{service}\n"
 
 

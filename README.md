@@ -41,15 +41,12 @@ Requer Android SDK (build-tools 36, android-34) e JDK. A keystore de debug é ge
 
 ## Primeira instalação só com o celular
 
-1. No PC: `python3 tools/dist.py --build --tv` (compila e mostra o endereço e o QR).
+1. No PC: `python3 tools/dist.py --build --tv` (compila, embute os APKs da TV no Couchkit e mostra o endereço e o QR).
 2. No celular, abra o QR e instale o Couchkit.
-3. Na TV, instale o app **Downloader** (loja da Amazon), abra-o e digite o endereço
-   `IP:porta/h?k=token` que o script imprime na linha "Fire TV". Isso baixa o **StickHub**.
-4. Abra o StickHub na TV, aperte MENU e escaneie o QR no Couchkit. Um QR basta: os apps da TV
-   compartilham o token do StickHub (permissão de assinatura) e o Couchkit encontra os outros sozinho.
-5. Pelo Couchkit (Início → Instalar APK) mande os demais APKs de `dist/tv/` para a TV.
+3. Na TV, o **único** passo manual: ligar a Depuração ADB (Opções do desenvolvedor).
+4. No Couchkit: **Configurar a TV pelo celular**, informe o IP e aprove "Sempre permitir" na TV uma vez. O celular instala os 6 apps, define o token pelo ADB (broadcast ao StickHub com a permissão `DUMP`, que só o shell tem), abre cada app e cadastra a TV. Não há QR nem app prévio na TV.
 
-Depois disso o PC só é preciso para atualizar os apps. A otimização profunda ainda usa `firetv/`.
+O caminho antigo (Downloader na TV + QR do StickHub) continua valendo para quem não quer usar ADB.
 
 ## Companion (Flutter)
 Ver `companion/README.md`. Pareia pelo QR da TV, guarda o token no Keychain/Keystore e reencontra o app se a porta mudar. Build: `cd companion && make check && make apk`.
