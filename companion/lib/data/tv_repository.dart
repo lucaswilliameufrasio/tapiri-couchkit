@@ -262,6 +262,9 @@ class TvRepository {
     }
   }
 
+  /// A TV aceita o token guardado para este app?
+  Future<bool> tokenAccepted(TvEndpoint endpoint) => _acceptsToken(endpoint);
+
   Future<bool> isOnline(TvEndpoint endpoint) async {
     final kind = await identify(endpoint.host, endpoint.port);
     return kind == endpoint.kind;

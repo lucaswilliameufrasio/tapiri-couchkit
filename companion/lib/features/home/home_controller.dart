@@ -4,7 +4,7 @@ import 'package:couchkit_remote/data/models/app_kind.dart';
 import 'package:couchkit_remote/data/models/tv_endpoint.dart';
 import 'package:couchkit_remote/data/tv_repository.dart';
 
-enum Presence { checking, online, offline }
+enum Presence { checking, online, offline, denied }
 
 class HomeController extends ChangeNotifier {
   HomeController(this._repository);
@@ -47,6 +47,16 @@ class HomeController extends ChangeNotifier {
       }
     }
     return null;
+  }
+
+  /// A TV em uso responde, mas recusa o token guardado aqui.
+  bool get tokenDenied {
+    for (final endpoint in current) {
+      if (presence[endpoint.id] == Presence.denied) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /// Apps online da TV em uso.
@@ -122,7 +132,11 @@ class HomeController extends ChangeNotifier {
         _replace(moved);
       }
     }
-    presence[current.id] = online ? Presence.online : Presence.offline;
+    if (online && !await _repository.tokenAccepted(current)) {
+      presence[current.id] = Presence.denied;
+    } else {
+      presence[current.id] = online ? Presence.online : Presence.offline;
+    }
     notifyListeners();
   }
 

@@ -42,7 +42,7 @@ public final class Pair {
     /** Define o token (vindo do Couchkit por ADB) e o grava. */
     public static synchronized void set(SharedPreferences p, String value) {
         token = value;
-        p.edit().putString("token", value).apply();
+        p.edit().putString("token", value).commit(); // sincrono: o processo do receiver pode morrer logo depois
     }
 
     /** Token atual; reconsulta o StickHub de tempos em tempos. */

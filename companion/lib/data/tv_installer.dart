@@ -58,6 +58,36 @@ class TvInstaller {
     return found;
   }
 
+  /// Reenvia [token] ao StickHub pelo ADB (conserto de "token recusado").
+  Future<void> setToken(
+    String host,
+    String token, {
+    void Function()? onWaitingApproval,
+  }) async {
+    final connection = await _adb.open(
+      host,
+      onWaitingApproval: onWaitingApproval,
+    );
+    try {
+      await _sendToken(connection, token);
+    } finally {
+      await connection.close();
+    }
+  }
+
+  Future<void> _sendToken(AdbConnection connection, String token) async {
+    const hub = 'com.lucas.stickhub';
+    final result = await connection.shell(
+      'am broadcast --include-stopped-packages '
+      '-a $hub.PROVISION -n $hub/.ProvisionReceiver --es token $token',
+    );
+    if (!result.contains('Broadcast completed')) {
+      throw AdbException(
+        'O StickHub não aceitou o token: ${result.split('\n').first}',
+      );
+    }
+  }
+
   /// Instala [apps] em ordem. Devolve os que falharam (id -> motivo).
   Future<Map<String, String>> install(
     String host,
@@ -106,15 +136,7 @@ class TvInstaller {
     const hub = 'com.lucas.stickhub';
     await connection.shell('am start -n $hub/.MainActivity');
     await Future<void>.delayed(gap);
-    final result = await connection.shell(
-      'am broadcast --include-stopped-packages '
-      '-a $hub.PROVISION -n $hub/.ProvisionReceiver --es token $token',
-    );
-    if (!result.contains('Broadcast completed')) {
-      throw AdbException(
-        'O StickHub não aceitou o token: ${result.split('\n').first}',
-      );
-    }
+    await _sendToken(connection, token);
     for (final app in apps) {
       if (app.id == 'stickhub') {
         continue;

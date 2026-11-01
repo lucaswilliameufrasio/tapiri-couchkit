@@ -7,6 +7,7 @@ import 'package:couchkit_remote/core/ui/describe_error.dart';
 import 'package:couchkit_remote/core/ui/widgets.dart';
 import 'package:couchkit_remote/data/models/tv_endpoint.dart';
 import 'package:couchkit_remote/data/services/hub_service.dart';
+import 'package:couchkit_remote/data/tv_installer.dart';
 import 'package:couchkit_remote/features/home/home_controller.dart';
 import 'package:couchkit_remote/features/hub/install_flow.dart';
 
@@ -54,6 +55,32 @@ class _HomeTabState extends State<HomeTab> {
   Future<void> _refresh() async {
     await context.read<HomeController>().refresh();
     await _loadInfo();
+  }
+
+  Future<void> _repairToken() async {
+    final controller = context.read<HomeController>();
+    final hub = controller.hub;
+    if (hub == null) {
+      return;
+    }
+    final installer = context.read<Injector>().get<TvInstaller>();
+    final message = await guarded(context, () async {
+      await installer.setToken(
+        hub.host,
+        hub.token,
+        onWaitingApproval: () {
+          if (mounted) {
+            showMessage(context, 'Aprove na TV: "Sempre permitir".');
+          }
+        },
+      );
+      await Future<void>.delayed(const Duration(seconds: 2));
+      await controller.refresh();
+      return 'Token reenviado à TV';
+    });
+    if (mounted && message != null) {
+      showMessage(context, message);
+    }
   }
 
   Future<void> _clean() async {
@@ -130,6 +157,8 @@ class _HomeTabState extends State<HomeTab> {
                       padding: const EdgeInsets.only(bottom: 12),
                       child: LinearProgressIndicator(value: _progress),
                     ),
+                  if (controller.tokenDenied && controller.hub != null)
+                    _TokenRepairCard(onRepair: _repairToken),
                   _TvCard(
                     controller: controller,
                     info: _info,
@@ -546,6 +575,7 @@ class _AppTile extends StatelessWidget {
     final (label, color) = switch (presence) {
       Presence.online => ('online', Colors.green),
       Presence.offline => ('offline', Colors.redAccent),
+      Presence.denied => ('token recusado', Colors.orange),
       Presence.checking => ('verificando…', Colors.grey),
     };
     return Card(
@@ -842,5 +872,29 @@ Future<void> _removeTv(BuildContext context, HomeController controller) async {
   );
   if (ok == true) {
     await controller.removeHost(host);
+  }
+}
+
+class _TokenRepairCard extends StatelessWidget {
+  const _TokenRepairCard({required this.onRepair});
+
+  final VoidCallback onRepair;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      color: Theme.of(context).colorScheme.errorContainer,
+      child: ListTile(
+        leading: const Icon(Icons.key_off),
+        title: const Text('A TV recusou o token'),
+        subtitle: const Text(
+          'Reenvie o token do Couchkit à TV pelo ADB, sem QR.',
+        ),
+        trailing: FilledButton(
+          onPressed: onRepair,
+          child: const Text('Reparar'),
+        ),
+      ),
+    );
   }
 }

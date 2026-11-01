@@ -81,7 +81,16 @@ class _RemotePageState extends State<RemotePage> {
   Widget build(BuildContext context) {
     final controller = _controller;
     return Scaffold(
-      appBar: AppBar(title: const Text('Controle')),
+      appBar: AppBar(
+        title: const Text('Controle'),
+        actions: [
+          IconButton(
+            tooltip: 'Desconectar o ADB',
+            icon: const Icon(Icons.link_off),
+            onPressed: () => Navigator.of(context).maybePop(),
+          ),
+        ],
+      ),
       body: switch (controller.state) {
         RemoteState.ready => _pad(context),
         RemoteState.failed => _Message(
