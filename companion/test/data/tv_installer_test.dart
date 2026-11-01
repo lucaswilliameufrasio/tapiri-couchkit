@@ -118,6 +118,11 @@ void main() {
         '-n com.lucas.stickhub/.ProvisionReceiver --es token k7m2p9qx',
       ),
     );
+    expect(
+      text,
+      contains('settings put secure enabled_accessibility_services'),
+    );
+    expect(text, contains('com.lucas.stickhub.KeyService'));
     expect(text, contains('am start -n com.lucas.homecam/.MainActivity'));
     expect(
       text.lastIndexOf('am start -n com.lucas.stickhub/.MainActivity'),
@@ -137,5 +142,11 @@ void main() {
       'com.google.android.tvlauncher/.MainActivity',
       'com.lucas.firehome/.HomeActivity',
     ]);
+  });
+
+  test('disableAdb manda adb_enabled 0 e não quebra se o adbd cair', () async {
+    await installer({'stickhub'}).disableAdb('127.0.0.1');
+    await Future<void>.delayed(const Duration(milliseconds: 300));
+    expect(log.toString(), contains('settings put global adb_enabled 0'));
   });
 }

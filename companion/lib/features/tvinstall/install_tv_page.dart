@@ -112,6 +112,36 @@ class _InstallTvPageState extends State<InstallTvPage> {
               ),
           const SizedBox(height: 12),
           _StatusCard(controller: controller),
+          if (controller.paired && controller.failures.isEmpty) ...[
+            const SizedBox(height: 8),
+            Card(
+              child: ListTile(
+                leading: Icon(
+                  controller.adbOff ? Icons.lock : Icons.lock_open,
+                  color: controller.adbOff ? Colors.green : Colors.orange,
+                ),
+                title: Text(
+                  controller.adbOff
+                      ? 'Depuração ADB desligada'
+                      : 'Desligar a depuração ADB agora',
+                ),
+                subtitle: Text(
+                  controller.adbOff
+                      ? 'O controle, os apps e o navegador seguem funcionando '
+                            'pela rede. Para religar, use o menu da TV.'
+                      : 'Recomendado: o controle remoto do Couchkit já não '
+                            'precisa dela. Só otimizar a TV e instalar apps '
+                            'exigem religar.',
+                ),
+                trailing: controller.adbOff
+                    ? null
+                    : FilledButton(
+                        onPressed: controller.disableAdb,
+                        child: const Text('Desligar'),
+                      ),
+              ),
+            ),
+          ],
           const SizedBox(height: 12),
           FilledButton.icon(
             icon: const Icon(Icons.download),

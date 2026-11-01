@@ -11,6 +11,7 @@ class PhoneBroPage extends StatefulWidget {
   const PhoneBroPage({
     required this.service,
     required this.endpoint,
+    this.openApp,
     super.key,
   });
 
@@ -18,6 +19,9 @@ class PhoneBroPage extends StatefulWidget {
 
   final PhoneBroService service;
   final TvEndpoint endpoint;
+
+  /// Abre o PhoneBro na TV (pelo StickHub) quando ele nao responde.
+  final Future<void> Function()? openApp;
 
   @override
   State<PhoneBroPage> createState() => _PhoneBroPageState();
@@ -33,6 +37,7 @@ class _PhoneBroPageState extends State<PhoneBroPage> {
   double _dx = 0;
   double _dy = 0;
   String _title = '';
+  bool _offline = false;
 
   PhoneBroService get _service => widget.service;
 
@@ -56,12 +61,48 @@ class _PhoneBroPageState extends State<PhoneBroPage> {
 
   Future<void> _loadState() async {
     final state = await guarded(context, _service.state);
-    if (state != null && mounted) {
-      setState(() {
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _offline = state == null;
+      if (state != null) {
         _url.text = state.url;
         _title = state.title;
-      });
+      }
+    });
+  }
+
+  Future<void> _open() async {
+    final open = widget.openApp;
+    if (open == null) {
+      return;
     }
+    await guarded(context, open);
+    await Future<void>.delayed(const Duration(seconds: 3));
+    if (mounted) {
+      await _loadState();
+    }
+  }
+
+  Future<void> _showBookmarks() async {
+    final state = await guarded(context, _service.state);
+    if (state == null || !mounted) {
+      return;
+    }
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (sheet) => _BookmarksSheet(
+        service: _service,
+        initial: state.bookmarks,
+        onOpen: (url) {
+          Navigator.of(sheet).pop();
+          _tap(() => _service.navigate(url));
+        },
+      ),
+    );
   }
 
   void _sendMove() {
@@ -87,6 +128,21 @@ class _PhoneBroPageState extends State<PhoneBroPage> {
         title: Text(_title.isEmpty ? 'PhoneBro' : _title, maxLines: 1),
         actions: [
           IconButton(
+            tooltip: 'Favoritos',
+            icon: const Icon(Icons.star_outline),
+            onPressed: _showBookmarks,
+          ),
+          IconButton(
+            tooltip: 'Diminuir zoom',
+            icon: const Icon(Icons.zoom_out),
+            onPressed: () => _tap(() => _service.zoom(0.8)),
+          ),
+          IconButton(
+            tooltip: 'Aumentar zoom',
+            icon: const Icon(Icons.zoom_in),
+            onPressed: () => _tap(() => _service.zoom(1.25)),
+          ),
+          IconButton(
             tooltip: 'Alternar modo desktop',
             icon: const Icon(Icons.desktop_windows_outlined),
             onPressed: () => _tap(_service.toggleDesktopMode),
@@ -98,6 +154,17 @@ class _PhoneBroPageState extends State<PhoneBroPage> {
           padding: const EdgeInsets.all(12),
           child: Column(
             children: [
+              if (_offline && widget.openApp != null)
+                Card(
+                  child: ListTile(
+                    leading: const Icon(Icons.power_settings_new),
+                    title: const Text('O PhoneBro não está aberto na TV'),
+                    trailing: FilledButton(
+                      onPressed: _open,
+                      child: const Text('Abrir'),
+                    ),
+                  ),
+                ),
               TextField(
                 controller: _url,
                 keyboardType: TextInputType.url,
@@ -235,6 +302,81 @@ class _PhoneBroPageState extends State<PhoneBroPage> {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _BookmarksSheet extends StatefulWidget {
+  const _BookmarksSheet({
+    required this.service,
+    required this.initial,
+    required this.onOpen,
+  });
+
+  final PhoneBroService service;
+  final List<Bookmark> initial;
+  final void Function(String url) onOpen;
+
+  @override
+  State<_BookmarksSheet> createState() => _BookmarksSheetState();
+}
+
+class _BookmarksSheetState extends State<_BookmarksSheet> {
+  late List<Bookmark> _marks = List.of(widget.initial);
+
+  Future<void> _reload() async {
+    final state = await guarded(context, widget.service.state);
+    if (state != null && mounted) {
+      setState(() => _marks = state.bookmarks);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.7,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.add),
+              title: const Text('Favoritar a página aberta na TV'),
+              onTap: () async {
+                await guarded(context, widget.service.addBookmark);
+                await _reload();
+              },
+            ),
+            const Divider(height: 1),
+            Flexible(
+              child: ListView(
+                shrinkWrap: true,
+                children: [
+                  for (final mark in _marks)
+                    ListTile(
+                      title: Text(mark.title, maxLines: 1),
+                      subtitle: Text(mark.url, maxLines: 1),
+                      onTap: () => widget.onOpen(mark.url),
+                      trailing: IconButton(
+                        tooltip: 'Remover',
+                        icon: const Icon(Icons.delete_outline),
+                        onPressed: () async {
+                          await guarded(
+                            context,
+                            () => widget.service.removeBookmark(mark.url),
+                          );
+                          await _reload();
+                        },
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

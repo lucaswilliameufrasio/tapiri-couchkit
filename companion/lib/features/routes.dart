@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:couchkit_remote/core/di/injector.dart';
 import 'package:couchkit_remote/core/navigation/router.dart';
 import 'package:couchkit_remote/data/backup/backup_service.dart';
+import 'package:couchkit_remote/core/errors/app_exception.dart';
+import 'package:couchkit_remote/data/models/app_kind.dart';
 import 'package:couchkit_remote/data/models/panel.dart';
 import 'package:couchkit_remote/data/models/tv_endpoint.dart';
 import 'package:couchkit_remote/data/services/hub_service.dart';
@@ -82,7 +84,11 @@ class AppRoutes implements RouteModule {
     router.register(
       PhoneBroPage.route,
       (context, args) => _endpointPage(args, (e) {
-        return PhoneBroPage(service: _services.phonebro(e), endpoint: e);
+        return PhoneBroPage(
+          service: _services.phonebro(e),
+          endpoint: e,
+          openApp: () => _openOnTv(e.host, 'com.lucas.phonebro'),
+        );
       }),
     );
     router.register(
@@ -109,6 +115,17 @@ class AppRoutes implements RouteModule {
         return CamPage(service: _services.cam(e));
       }),
     );
+  }
+
+  /// Abre um app na TV pelo StickHub dela (sem ADB).
+  Future<void> _openOnTv(String host, String pkg) async {
+    for (final endpoint in await _injector.get<TvRepository>().load()) {
+      if (endpoint.host == host && endpoint.kind == AppKind.stickhub) {
+        await _services.hub(endpoint).launch(pkg);
+        return;
+      }
+    }
+    throw const TvUnreachableException('StickHub desta TV não encontrado');
   }
 
   Widget _endpointPage(Object? args, Widget Function(TvEndpoint) build) {

@@ -70,6 +70,7 @@ class TvInstaller {
     );
     try {
       await _sendToken(connection, token);
+      await _enableKeyService(connection);
     } finally {
       await connection.close();
     }
@@ -85,6 +86,48 @@ class TvInstaller {
       throw AdbException(
         'O StickHub não aceitou o token: ${result.split('\n').first}',
       );
+    }
+  }
+
+  static const _keyService = 'com.lucas.stickhub/com.lucas.stickhub.KeyService';
+
+  /// Liga o servico de controle remoto do StickHub (acessibilidade), que
+  /// permite usar o controle do Couchkit sem a depuracao ADB.
+  Future<void> _enableKeyService(AdbConnection connection) async {
+    final current = (await connection.shell(
+      'settings get secure enabled_accessibility_services',
+    )).trim();
+    if (current.split(':').contains(_keyService)) {
+      return;
+    }
+    final value = current.isEmpty || current == 'null'
+        ? _keyService
+        : '$current:$_keyService';
+    await connection.shell(
+      "settings put secure enabled_accessibility_services '$value'",
+    );
+    await connection.shell('settings put secure accessibility_enabled 1');
+  }
+
+  /// Liga o controle sem ADB numa TV ja configurada.
+  Future<void> enableRemote(String host) async {
+    final connection = await _adb.open(host);
+    try {
+      await _enableKeyService(connection);
+    } finally {
+      await connection.close();
+    }
+  }
+
+  /// Desliga a Depuracao ADB da TV. Religar so pelo menu da TV.
+  Future<void> disableAdb(String host) async {
+    final connection = await _adb.open(host);
+    try {
+      await connection.shell('settings put global adb_enabled 0');
+    } on AdbException {
+      // o adbd cai junto com a conexao: esperado
+    } finally {
+      await connection.close();
     }
   }
 
@@ -144,6 +187,7 @@ class TvInstaller {
     await connection.shell('am start -n $hub/.MainActivity');
     await Future<void>.delayed(gap);
     await _sendToken(connection, token);
+    await _enableKeyService(connection);
     for (final app in apps) {
       if (app.id == 'stickhub') {
         continue;
