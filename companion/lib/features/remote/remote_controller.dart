@@ -4,7 +4,6 @@ import 'package:flutter/foundation.dart';
 
 import 'package:couchkit_remote/core/errors/app_exception.dart';
 import 'package:couchkit_remote/data/adb/adb_connection.dart';
-import 'package:couchkit_remote/data/services/hub_service.dart';
 import 'package:couchkit_remote/data/tv_adb.dart';
 
 enum RemoteState { connecting, waiting, ready, failed }
@@ -33,21 +32,13 @@ enum RemoteKey {
   final int code;
 }
 
-/// Controle remoto. Prefere o servico de controle do StickHub (HTTP, nao
-/// precisa de ADB ligado); sem ele, usa uma sessao ADB aberta enquanto a tela
-/// esta em uso. As teclas saem em fila, na ordem em que foram tocadas.
+/// Controle remoto pelo ADB: mantem uma sessao aberta enquanto a tela esta
+/// em uso e manda as teclas em fila, na ordem em que foram tocadas.
 class RemoteController extends ChangeNotifier {
-  RemoteController(this._adb, this.host, {this.hub});
+  RemoteController(this._adb, this.host);
 
   final TvAdb _adb;
   final String host;
-  final HubService? hub;
-
-  /// Controle sem ADB em uso.
-  bool viaHub = false;
-
-  /// Aviso passageiro para a tela mostrar (tecla nao executada, etc.).
-  String? notice;
 
   RemoteState state = RemoteState.connecting;
   String? error;
@@ -59,20 +50,6 @@ class RemoteController extends ChangeNotifier {
     state = RemoteState.connecting;
     error = null;
     _notify();
-    viaHub = false;
-    final hub = this.hub;
-    if (hub != null) {
-      try {
-        viaHub = (await hub.info()).remote;
-      } on AppException {
-        viaHub = false;
-      }
-      if (viaHub) {
-        state = RemoteState.ready;
-        _notify();
-        return;
-      }
-    }
     try {
       await _connection?.close();
       _connection = await _adb.open(
@@ -90,69 +67,13 @@ class RemoteController extends ChangeNotifier {
     _notify();
   }
 
-  void press(RemoteKey key) {
-    final hub = this.hub;
-    if (viaHub && hub != null && key != RemoteKey.menu) {
-      if (key == RemoteKey.wakeup) {
-        _hubCall(
-          () => throw const AdbException('Acordar a TV precisa do ADB.'),
-        );
-        return;
-      }
-      _hubCall(() => hub.key(key.code));
-      return;
-    }
-    if (viaHub) {
-      _hubCall(
-        () => throw const AdbException('O botão Menu precisa do ADB ligado.'),
-      );
-      return;
-    }
-    _send('input keyevent ${key.code}');
-  }
+  void press(RemoteKey key) => _send('input keyevent ${key.code}');
 
   /// Abre as configuracoes da Fire TV (a engrenagem do app da Amazon).
-  void openSettings() {
-    final hub = this.hub;
-    if (viaHub && hub != null) {
-      _hubCall(hub.openSettings);
-      return;
-    }
-    _send('am start -a android.settings.SETTINGS');
-  }
-
-  void backspace() {
-    final hub = this.hub;
-    if (viaHub && hub != null) {
-      _hubCall(hub.backspace);
-      return;
-    }
-    _send('input keyevent 67');
-  }
-
-  void _hubCall(Future<void> Function() call) {
-    if (_disposed) {
-      return;
-    }
-    _queue = _queue.then((_) async {
-      try {
-        await call();
-      } on AppException catch (e) {
-        notice = e.message;
-        _notify();
-      }
-    });
-  }
+  void openSettings() => _send('am start -a android.settings.SETTINGS');
 
   /// Digita [text] no campo em foco da TV.
   void type(String text) {
-    final hub = this.hub;
-    if (viaHub && hub != null) {
-      if (text.isNotEmpty) {
-        _hubCall(() => hub.typeText(text));
-      }
-      return;
-    }
     final safe = text.replaceAll(RegExp(r'[^A-Za-z0-9 ._@-]'), '');
     if (safe.isEmpty) {
       return;

@@ -80,6 +80,3 @@ o cliente sem aparelho.
 
 ## Tela inicial padrão e lista do FireHome
 Couchkit → Início → Tela inicial padrão troca o launcher do botão Home pelo ADB (`cmd package set-home-activity`, Android 9+; o Fire OS 5 protege o launcher da Amazon e não permite). Alguns launchers de fabricante ignoram a troca; o app confere o resultado e avisa. O filtro "esconder por nome" do FireHome compara o nome inteiro, não um pedaço.
-
-## Usar sem a depuração ADB
-O ADB só é preciso para configurar (instalar apps, otimizar, trocar o launcher). Na configuração, o Couchkit também liga o serviço de acessibilidade do StickHub ("Couchkit: controle remoto"), que recebe as teclas pela rede (`/api/key`, com o token): Voltar e Home são ações globais, as setas movem o foco, OK clica no item em foco, volume e mídia usam o AudioManager, e o texto vai para o campo em foco (`/api/text`). Depois disso dá para **desligar a Depuração ADB** (botão na tela de configurar; religar só pelo menu da TV). Sem ADB não funcionam: botão Menu, acordar a TV, otimizar, instalar apps e trocar o launcher. As setas dependem do app ter foco navegável; em apps que desenham tudo num canvas pode falhar. Testado no emulador Android 7.1 (setas, OK, Voltar, Home, volume).

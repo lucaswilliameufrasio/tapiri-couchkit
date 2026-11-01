@@ -79,16 +79,6 @@ final class Hub {
         if (cmd.equals("stop")) { ((ActivityManager) app.getSystemService(Context.ACTIVITY_SERVICE)).killBackgroundProcesses(pkg); return ok(true, ""); }
         if (cmd.equals("uninstall")) { app.startActivity(new Intent(Intent.ACTION_DELETE, Uri.parse("package:" + pkg)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)); return ok(true, "Confirme na TV"); }
         if (cmd.equals("details")) { app.startActivity(new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + pkg)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)); return ok(true, ""); }
-        if (cmd.equals("key")) {
-            int code; try { code = Integer.parseInt(q.get("code")); } catch (RuntimeException e) { return ok(false, "tecla invalida"); }
-            return ok(KeyService.press(app, code), KeyService.active() ? "" : "servico de controle desligado");
-        }
-        if (cmd.equals("text")) {
-            String t = q.get("t"); if (t == null) return ok(false, "sem texto");
-            return ok(KeyService.type(t), "nenhum campo de texto em foco");
-        }
-        if (cmd.equals("settings")) { app.startActivity(new Intent(Settings.ACTION_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)); return ok(true, ""); }
-        if (cmd.equals("backspace")) return ok(KeyService.backspace(), "nenhum campo de texto em foco");
         if (cmd.equals("clean")) return HubServer.Resp.json(clean());
         if (cmd.equals("openurl")) {
             Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse(q.get("url"))).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
@@ -132,7 +122,7 @@ final class Hub {
         return "{\"model\":" + q(Build.MANUFACTURER + " " + Build.MODEL) + ",\"android\":" + q(Build.VERSION.RELEASE) + ",\"sdk\":" + Build.VERSION.SDK_INT
                 + ",\"ramTotal\":" + (mi.totalMem >> 20) + ",\"ramFree\":" + (mi.availMem >> 20)
                 + ",\"diskTotal\":" + (fs.getTotalBytes() >> 20) + ",\"diskFree\":" + (fs.getAvailableBytes() >> 20)
-                + ",\"remote\":" + KeyService.active() + ",\"uptime\":" + (SystemClock.elapsedRealtime() / 1000) + ",\"top\":" + top + "}";
+                + ",\"uptime\":" + (SystemClock.elapsedRealtime() / 1000) + ",\"top\":" + top + "}";
     }
 
     static String clean() {

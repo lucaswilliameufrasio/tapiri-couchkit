@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:couchkit_remote/core/errors/app_exception.dart';
 import 'package:couchkit_remote/core/network/tv_client.dart';
 
 class DeviceInfo {
@@ -12,7 +11,6 @@ class DeviceInfo {
     required this.diskTotalMb,
     required this.diskFreeMb,
     required this.uptimeSeconds,
-    this.remote = false,
   });
 
   factory DeviceInfo.fromJson(Json json) {
@@ -25,7 +23,6 @@ class DeviceInfo {
       diskTotalMb: number('diskTotal'),
       diskFreeMb: number('diskFree'),
       uptimeSeconds: number('uptime'),
-      remote: json['remote'] == true,
     );
   }
 
@@ -36,9 +33,6 @@ class DeviceInfo {
   final int diskTotalMb;
   final int diskFreeMb;
   final int uptimeSeconds;
-
-  /// O servico de controle remoto (sem ADB) esta ligado na TV.
-  final bool remote;
 }
 
 class InstalledApp {
@@ -92,29 +86,6 @@ class HubService {
   Uri iconUri(String pkg) => _client.uri('/api/icon', {'pkg': pkg});
 
   Future<String> launch(String pkg) => _message('launch', pkg);
-
-  /// Tecla do controle remoto, sem ADB (precisa do servico ligado na TV).
-  Future<void> key(int code) async {
-    final json = await _client.getJson('/api/key', {'code': '$code'});
-    if (json['ok'] != true) {
-      throw TvUnreachableException('${json['msg'] ?? 'tecla não executada'}');
-    }
-  }
-
-  Future<void> typeText(String text) async {
-    final json = await _client.getJson('/api/text', {'t': text});
-    if (json['ok'] != true) {
-      throw TvUnreachableException('${json['msg'] ?? 'sem campo em foco'}');
-    }
-  }
-
-  Future<void> backspace() async {
-    await _client.getJson('/api/backspace');
-  }
-
-  Future<void> openSettings() async {
-    await _client.getJson('/api/settings');
-  }
 
   Future<String> stop(String pkg) => _message('stop', pkg);
 

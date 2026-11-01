@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'package:couchkit_remote/core/ui/describe_error.dart';
-import 'package:couchkit_remote/data/tv_installer.dart';
 import 'package:couchkit_remote/data/services/hub_service.dart';
 import 'package:couchkit_remote/data/tv_adb.dart';
 import 'package:couchkit_remote/features/remote/dpad.dart';
@@ -31,7 +30,6 @@ class _RemotePageState extends State<RemotePage> {
   late final RemoteController _controller = RemoteController(
     widget.adb,
     widget.host,
-    hub: widget.hub,
   )..addListener(_changed);
   int _tab = 0;
   List<InstalledApp>? _appList;
@@ -61,14 +59,8 @@ class _RemotePageState extends State<RemotePage> {
   }
 
   void _changed() {
-    if (!mounted) {
-      return;
-    }
-    setState(() {});
-    final notice = _controller.notice;
-    if (notice != null) {
-      _controller.notice = null;
-      showMessage(context, notice);
+    if (mounted) {
+      setState(() {});
     }
   }
 
@@ -78,16 +70,6 @@ class _RemotePageState extends State<RemotePage> {
       ..removeListener(_changed)
       ..dispose();
     super.dispose();
-  }
-
-  Future<void> _enableHubRemote() async {
-    final done = await guarded(context, () async {
-      await TvInstaller(widget.adb).enableRemote(widget.host);
-      return true;
-    });
-    if (done == true && mounted) {
-      await _controller.connect();
-    }
   }
 
   void _press(RemoteKey key) {
@@ -110,27 +92,7 @@ class _RemotePageState extends State<RemotePage> {
         ],
       ),
       body: switch (controller.state) {
-        RemoteState.ready => Column(
-          children: [
-            if (!controller.viaHub && widget.hub != null)
-              Card(
-                margin: const EdgeInsets.fromLTRB(12, 8, 12, 0),
-                child: ListTile(
-                  leading: const Icon(Icons.usb),
-                  title: const Text('Usando o ADB'),
-                  subtitle: const Text(
-                    'Ative o controle pela rede para poder desligar a '
-                    'depuração ADB.',
-                  ),
-                  trailing: TextButton(
-                    onPressed: _enableHubRemote,
-                    child: const Text('Ativar'),
-                  ),
-                ),
-              ),
-            Expanded(child: _pad(context)),
-          ],
-        ),
+        RemoteState.ready => _pad(context),
         RemoteState.failed => _Message(
           icon: Icons.error_outline,
           text:

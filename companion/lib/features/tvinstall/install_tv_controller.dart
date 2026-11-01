@@ -19,24 +19,6 @@ class InstallTvController extends ChangeNotifier {
   int registered = 0;
   bool get paired => registered > 0;
 
-  bool adbOff = false;
-  String? lastHost;
-
-  /// Desliga a depuracao ADB da TV (depois da configuracao).
-  Future<void> disableAdb() async {
-    final host = lastHost;
-    if (host == null || adbOff) {
-      return;
-    }
-    try {
-      await _installer.disableAdb(host);
-      adbOff = true;
-    } on AppException catch (e) {
-      error = e.message;
-    }
-    notifyListeners();
-  }
-
   static String newToken() {
     const chars = 'abcdefghijkmnpqrstuvwxyz23456789';
     final random = Random.secure();
@@ -84,8 +66,6 @@ class InstallTvController extends ChangeNotifier {
     notifyListeners();
     try {
       final address = host.trim();
-      lastHost = address;
-      adbOff = false;
       final token = await _repository.tokenOf(address) ?? newToken();
       final chosen = [
         for (final app in apps)
