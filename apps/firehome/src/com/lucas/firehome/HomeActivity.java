@@ -178,7 +178,7 @@ public class HomeActivity extends Activity {
         return new ArrayList<Item>(map.values());
     }
 
-    private static boolean hiddenLabel(JSONArray hl, String l) { for (int i = 0; hl != null && i < hl.length(); i++) { String h = hl.optString(i); if (!h.isEmpty() && l.contains(h)) return true; } return false; }
+    private static boolean hiddenLabel(JSONArray hl, String l) { for (int i = 0; hl != null && i < hl.length(); i++) { String h = hl.optString(i); if (!h.isEmpty() && l.trim().equalsIgnoreCase(h.trim())) return true; } return false; }
 
     private void togglePin(String pkg) {
         try {

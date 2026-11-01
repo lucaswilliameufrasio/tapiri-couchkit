@@ -9,6 +9,7 @@ import 'package:couchkit_remote/data/panels_repository.dart';
 import 'package:couchkit_remote/data/backup/backup_service.dart';
 import 'package:couchkit_remote/data/tv_adb.dart';
 import 'package:couchkit_remote/data/tv_installer.dart';
+import 'package:couchkit_remote/data/tv_launcher.dart';
 import 'package:couchkit_remote/data/tv_repository.dart';
 import 'package:couchkit_remote/data/tv_service_factory.dart';
 import 'package:couchkit_remote/features/home/home_controller.dart';
@@ -29,6 +30,9 @@ Injector buildInjector() {
       injector.get<PanelsRepository>(),
       injector.get<TvServiceFactory>(),
     ),
+  );
+  injector.registerLazySingleton<TvLauncher>(
+    () => TvLauncher(injector.get<TvAdb>()),
   );
   injector.registerLazySingleton<TvInstaller>(
     () => TvInstaller(injector.get<TvAdb>()),

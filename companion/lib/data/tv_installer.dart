@@ -97,6 +97,7 @@ class TvInstaller {
     bool openFirst = false,
     String? token,
     Duration launchGap = const Duration(milliseconds: 1500),
+    Duration retryGap = const Duration(seconds: 3),
   }) async {
     final failures = <String, String>{};
     final connection = await _adb.open(
@@ -106,7 +107,13 @@ class TvInstaller {
     try {
       for (final app in apps) {
         try {
-          await _installOne(connection, app, onProgress);
+          try {
+            await _installOne(connection, app, onProgress);
+          } on AdbException {
+            // a TV as vezes recusa a primeira (verificacao do sistema)
+            await Future<void>.delayed(retryGap);
+            await _installOne(connection, app, onProgress);
+          }
           onProgress(app, InstallStep.done);
         } on AppException catch (e) {
           failures[app.id] = e.message;

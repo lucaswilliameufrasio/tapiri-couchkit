@@ -8,6 +8,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:couchkit_remote/data/secure_storage_service.dart';
 import 'package:couchkit_remote/data/tv_adb.dart';
 import 'package:couchkit_remote/data/tv_installer.dart';
+import 'package:couchkit_remote/data/tv_launcher.dart';
 
 class _Bundle extends CachingAssetBundle {
   _Bundle(this.ids);
@@ -122,5 +123,19 @@ void main() {
       text.lastIndexOf('am start -n com.lucas.stickhub/.MainActivity'),
       greaterThan(text.indexOf('am start -n com.lucas.homecam/.MainActivity')),
     );
+  });
+
+  test('TvLauncher.parseComponents lê a lista do cmd package', () {
+    const out = """3 activities found:
+  Activity #0:
+    priority=2 preferredOrder=0 match=0x108000 specificIndex=-1 isDefault=true
+    com.google.android.tvlauncher/.MainActivity
+  Activity #1:
+    com.lucas.firehome/.HomeActivity
+""";
+    expect(TvLauncher.parseComponents(out), [
+      'com.google.android.tvlauncher/.MainActivity',
+      'com.lucas.firehome/.HomeActivity',
+    ]);
   });
 }

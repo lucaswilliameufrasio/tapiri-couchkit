@@ -8,6 +8,8 @@ import 'package:couchkit_remote/data/models/tv_endpoint.dart';
 import 'package:couchkit_remote/data/services/hub_service.dart';
 import 'package:couchkit_remote/data/tv_adb.dart';
 import 'package:couchkit_remote/data/tv_installer.dart';
+import 'package:couchkit_remote/data/tv_launcher.dart';
+import 'package:couchkit_remote/features/launcher/launcher_page.dart';
 import 'package:couchkit_remote/data/tv_repository.dart';
 import 'package:couchkit_remote/data/tv_service_factory.dart';
 import 'package:couchkit_remote/features/add/add_page.dart';
@@ -53,6 +55,12 @@ class AppRoutes implements RouteModule {
         repository: _injector.get<TvRepository>(),
         host: args is String ? args : null,
       ),
+    );
+    router.register(
+      LauncherPage.route,
+      (context, args) => args is String
+          ? LauncherPage(launcher: _injector.get<TvLauncher>(), host: args)
+          : const Scaffold(body: Center(child: Text('TV ausente'))),
     );
     router.register(
       RemotePage.route,

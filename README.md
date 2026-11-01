@@ -77,3 +77,6 @@ O adbd da Fire OS aceita um cliente por vez e recusa conexões que partem da pr�
 o cliente é o celular. Com o ADB do PC conectado, rode `adb disconnect` antes.
 `tools/fake_adbd.py` é um adbd falso que confere a assinatura e o formato da chave, para testar
 o cliente sem aparelho.
+
+## Tela inicial padrão e lista do FireHome
+Couchkit → Início → Tela inicial padrão troca o launcher do botão Home pelo ADB (`cmd package set-home-activity`, Android 9+; o Fire OS 5 protege o launcher da Amazon e não permite). Alguns launchers de fabricante ignoram a troca; o app confere o resultado e avisa. O filtro "esconder por nome" do FireHome compara o nome inteiro, não um pedaço.
