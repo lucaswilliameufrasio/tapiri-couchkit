@@ -37,3 +37,11 @@ class AdbException extends AppException {
 class BackupException extends AppException {
   const BackupException(super.message);
 }
+
+/// Falha no Android TV Remote v2 (pareamento, certificado, conexao).
+class AtvException extends AppException {
+  const AtvException(super.message, {this.needsPairing = false});
+
+  /// A TV nao conhece este celular: falta parear com o codigo da tela.
+  final bool needsPairing;
+}

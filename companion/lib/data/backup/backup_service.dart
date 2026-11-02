@@ -45,6 +45,7 @@ class BackupService {
   });
 
   static const _adbKey = 'adb_key';
+  static const _atvKey = 'atv_identity';
 
   final KeyValueStore _store;
   final TvRepository _tvs;
@@ -76,6 +77,7 @@ class BackupService {
       'selectedHost': await _tvs.selectedHost(),
       'panels': [for (final p in await _panels.load()) p.toJson()],
       'adbKey': await _store.read(_adbKey),
+      'atvIdentity': await _store.read(_atvKey),
       'homecam': homecam,
       'firehome': firehome,
     };
@@ -124,6 +126,10 @@ class BackupService {
     final hasKey = key is String && key.isNotEmpty;
     if (hasKey) {
       await _store.write(_adbKey, key);
+    }
+    final atv = payload['atvIdentity'];
+    if (atv is String && atv.isNotEmpty) {
+      await _store.write(_atvKey, atv);
     }
 
     final pushed = <String>[];

@@ -7,6 +7,7 @@ import 'package:couchkit_remote/core/ui/theme.dart';
 import 'package:couchkit_remote/data/secure_storage_service.dart';
 import 'package:couchkit_remote/data/panels_repository.dart';
 import 'package:couchkit_remote/data/backup/backup_service.dart';
+import 'package:couchkit_remote/data/atv/atv_service.dart';
 import 'package:couchkit_remote/data/tv_adb.dart';
 import 'package:couchkit_remote/data/tv_installer.dart';
 import 'package:couchkit_remote/data/tv_launcher.dart';
@@ -20,6 +21,9 @@ import 'package:couchkit_remote/features/shell/shell_page.dart';
 Injector buildInjector() {
   final injector = Injector();
   injector.registerSingleton<KeyValueStore>(SecureStorageService());
+  injector.registerLazySingleton<AtvService>(
+    () => AtvService(injector.get<KeyValueStore>()),
+  );
   injector.registerLazySingleton<TvAdb>(
     () => TvAdb(injector.get<KeyValueStore>()),
   );

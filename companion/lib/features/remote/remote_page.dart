@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'package:couchkit_remote/core/ui/describe_error.dart';
+import 'package:couchkit_remote/data/atv/atv_service.dart';
 import 'package:couchkit_remote/data/services/hub_service.dart';
 import 'package:couchkit_remote/data/tv_adb.dart';
 import 'package:couchkit_remote/features/remote/dpad.dart';
@@ -12,6 +13,7 @@ class RemotePage extends StatefulWidget {
   const RemotePage({
     required this.adb,
     required this.host,
+    this.atv,
     this.hub,
     super.key,
   });
@@ -21,6 +23,7 @@ class RemotePage extends StatefulWidget {
   final TvAdb adb;
   final String host;
   final HubService? hub;
+  final AtvService? atv;
 
   @override
   State<RemotePage> createState() => _RemotePageState();
@@ -30,6 +33,7 @@ class _RemotePageState extends State<RemotePage> {
   late final RemoteController _controller = RemoteController(
     widget.adb,
     widget.host,
+    atv: widget.atv,
   )..addListener(_changed);
   int _tab = 0;
   List<InstalledApp>? _appList;
@@ -85,7 +89,7 @@ class _RemotePageState extends State<RemotePage> {
         title: const Text('Controle'),
         actions: [
           IconButton(
-            tooltip: 'Desconectar o ADB',
+            tooltip: 'Desconectar',
             icon: const Icon(Icons.link_off),
             onPressed: () => Navigator.of(context).maybePop(),
           ),
@@ -109,8 +113,20 @@ class _RemotePageState extends State<RemotePage> {
         ),
         RemoteState.connecting => const _Message(
           icon: Icons.sync,
-          text: 'Conectando ao ADB da TV…',
+          text: 'Conectando à TV…',
         ),
+        RemoteState.needsPairing => _Message(
+          icon: Icons.link,
+          text:
+              '${controller.error ?? 'Esta TV ainda não conhece o seu celular.'}'
+              '\nO pareamento é feito uma vez: a TV mostra um código de 6 '
+              'caracteres e você digita aqui.',
+          action: FilledButton(
+            onPressed: controller.startPairing,
+            child: const Text('Parear com a TV'),
+          ),
+        ),
+        RemoteState.enterCode => _CodeEntry(controller: controller),
       },
     );
   }
@@ -364,6 +380,65 @@ class _Message extends StatelessWidget {
             const SizedBox(height: 12),
             Text(text, textAlign: TextAlign.center),
             if (action != null) ...[const SizedBox(height: 16), action!],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CodeEntry extends StatefulWidget {
+  const _CodeEntry({required this.controller});
+
+  final RemoteController controller;
+
+  @override
+  State<_CodeEntry> createState() => _CodeEntryState();
+}
+
+class _CodeEntryState extends State<_CodeEntry> {
+  final _code = TextEditingController();
+
+  @override
+  void dispose() {
+    _code.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final error = widget.controller.error;
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.pin_outlined, size: 48),
+            const SizedBox(height: 12),
+            const Text(
+              'Digite o código que apareceu na TV.',
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: 220,
+              child: TextField(
+                controller: _code,
+                autofocus: true,
+                maxLength: 6,
+                textAlign: TextAlign.center,
+                textCapitalization: TextCapitalization.characters,
+                style: const TextStyle(fontSize: 28, letterSpacing: 6),
+                decoration: InputDecoration(errorText: error),
+                onSubmitted: widget.controller.submitCode,
+              ),
+            ),
+            const SizedBox(height: 8),
+            FilledButton(
+              onPressed: () => widget.controller.submitCode(_code.text),
+              child: const Text('Confirmar'),
+            ),
           ],
         ),
       ),

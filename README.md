@@ -80,3 +80,6 @@ o cliente sem aparelho.
 
 ## Tela inicial padrão e lista do FireHome
 Couchkit → Início → Tela inicial padrão troca o launcher do botão Home pelo ADB (`cmd package set-home-activity`, Android 9+; o Fire OS 5 protege o launcher da Amazon e não permite). Alguns launchers de fabricante ignoram a troca; o app confere o resultado e avisa. O filtro "esconder por nome" do FireHome compara o nome inteiro, não um pedaço.
+
+## Controle remoto sem ADB (Android TV / Google TV)
+Em Android TV e Google TV o controle do Couchkit usa o protocolo Remote v2 (o mesmo do app Google TV): conexão TLS com um certificado gerado no celular, portas 6467 (pareamento) e 6466 (comandos). Pareia-se uma vez por TV: a TV mostra um código de 6 caracteres e você o digita no celular. Depois disso não precisa de depuração ADB nem de nada instalado na TV, e a autenticação é por certificado (não pelo token). O certificado fica no cofre do celular e entra no backup criptografado. Sem o serviço (Fire TV), cai no ADB. Cobre setas, OK, Voltar, Home, Menu, volume, mudo, mídia, ligar/desligar e texto. Os bytes das mensagens foram conferidos contra o `protoc` com os `.proto` oficiais e o cálculo do código contra a biblioteca de referência (`androidtvremote2`); `tool/atv_probe.dart` testa contra uma TV real.

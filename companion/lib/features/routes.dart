@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:couchkit_remote/core/di/injector.dart';
 import 'package:couchkit_remote/core/navigation/router.dart';
+import 'package:couchkit_remote/data/atv/atv_service.dart';
 import 'package:couchkit_remote/data/backup/backup_service.dart';
 import 'package:couchkit_remote/core/errors/app_exception.dart';
 import 'package:couchkit_remote/data/models/app_kind.dart';
@@ -67,7 +68,12 @@ class AppRoutes implements RouteModule {
     router.register(
       RemotePage.route,
       (context, args) => args is (String, HubService?)
-          ? RemotePage(adb: _injector.get<TvAdb>(), host: args.$1, hub: args.$2)
+          ? RemotePage(
+              adb: _injector.get<TvAdb>(),
+              atv: _injector.get<AtvService>(),
+              host: args.$1,
+              hub: args.$2,
+            )
           : const Scaffold(body: Center(child: Text('TV ausente'))),
     );
     router.register(
